@@ -1,0 +1,17 @@
+{{define "search"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/css/styles.css?v={{.AssetVersion}}">
+</head>
+<body>
+  <main>
+    <h1>SkyPath</h1>
+    <p>Flight connection search.</p>
+  </main>
+  <script src="/static/js/app.js?v={{.AssetVersion}}" defer></script>
+</body>
+</html>
+{{end}}
