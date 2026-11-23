@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,6 +17,11 @@ import (
 // legitimate reply is a few dozen kilobytes; the cap only protects the
 // frontend's memory from a misbehaving or misdirected backend.
 const maxBodyBytes = 4 << 20
+
+const (
+	problemMediaType = "application/problem+json"
+	codeTimeout      = "timeout"
+)
 
 // defaultTimeout applies when New is given no HTTP client.
 const defaultTimeout = 5 * time.Second
@@ -92,22 +99,58 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, out any
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrUnavailable, err)
+		return unavailable(err)
 	}
 	defer resp.Body.Close()
 
 	body, err := c.readBody(resp.Body)
 	if err != nil {
-		return fmt.Errorf("%w: read response: %w", ErrUnavailable, err)
+		return unavailable(fmt.Errorf("read response: %w", err))
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("%w: unexpected status %d", ErrUnavailable, resp.StatusCode)
+	switch {
+	case resp.StatusCode >= 200 && resp.StatusCode <= 299:
+		if err := json.Unmarshal(body, out); err != nil {
+			return unavailable(fmt.Errorf("decode response: %w", err))
+		}
+		return nil
+	case resp.StatusCode >= 400 && resp.StatusCode <= 499 && isProblem(resp):
+		var problem ProblemError
+		if err := json.Unmarshal(body, &problem); err != nil {
+			return unavailable(fmt.Errorf("decode problem response: %w", err))
+		}
+		return &problem
+	default:
+		return statusError(resp.StatusCode, body)
 	}
-	if err := json.Unmarshal(body, out); err != nil {
-		return fmt.Errorf("%w: decode response: %w", ErrUnavailable, err)
+}
+
+// isProblem reports whether the response is a problem-details document.
+func isProblem(resp *http.Response) bool {
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	return err == nil && mediaType == problemMediaType
+}
+
+// statusError describes a response that is neither a success nor a problem
+// the caller can act on. It reads the problem body when there is one, only
+// to make the message useful when correlating logs; failure to decode it is
+// not worth reporting.
+func statusError(status int, body []byte) error {
+	var problem ProblemError
+	_ = json.Unmarshal(body, &problem)
+
+	detail := fmt.Sprintf("unexpected status %d", status)
+	if problem.Code != "" {
+		detail += fmt.Sprintf(" (%s, request %s)", problem.Code, problem.RequestID)
 	}
-	return nil
+
+	// The API reports its own time limit as 503 "timeout"; a proxy in front
+	// of it reports one as 504. Both mean the search took too long, which
+	// the page words differently from a failure.
+	if status == http.StatusGatewayTimeout || problem.Code == codeTimeout {
+		return unavailable(fmt.Errorf("%w: %s", ErrTimeout, detail))
+	}
+	return unavailable(errors.New(detail))
 }
 
 // readBody reads the whole body, failing rather than truncating when it is
