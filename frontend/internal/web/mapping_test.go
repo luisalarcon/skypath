@@ -1,9 +1,6 @@
 package web
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -14,14 +11,8 @@ import (
 // loadSearch decodes a canonical search payload from api/examples.
 func loadSearch(t *testing.T, name string) *client.SearchResponse {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "..", "api", "examples", name))
-	if err != nil {
-		t.Fatalf("read example %s: %v", name, err)
-	}
 	var resp client.SearchResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
-		t.Fatalf("decode example %s: %v", name, err)
-	}
+	loadExample(t, name, &resp)
 	return &resp
 }
 
