@@ -3,6 +3,7 @@ package dataset
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 	"unicode/utf8"
@@ -59,7 +60,7 @@ func parseFlight(raw json.RawMessage, airports map[string]flight.Airport, accept
 	}
 
 	if !r.has("price") {
-		return f, fmt.Errorf("missing price")
+		return f, errors.New("missing price")
 	}
 	// Money reads the number or string from its text form straight into
 	// cents, so the value never passes through floating point.

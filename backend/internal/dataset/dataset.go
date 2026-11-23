@@ -17,7 +17,7 @@ import (
 type Dataset struct {
 	Airports []flight.Airport // ordered by code
 	Flights  []flight.Flight  // every valid flight, in file order
-	Skipped  []Skipped        // rejected records, in file order
+	Skipped  []Skipped        // rejected airports, then rejected flights, each in file order
 }
 
 // Skipped describes one record that was rejected while loading.
@@ -38,14 +38,30 @@ func (s Skipped) String() string {
 }
 
 // Errors for a file that cannot be used at all. Parse and Load wrap them with
-// detail; test for them with errors.Is.
+// detail, so test for them with errors.Is.
 var (
-	ErrUnreadable      = errors.New("schedule cannot be read")
-	ErrInvalidJSON     = errors.New("schedule is not valid JSON")
+	// ErrUnreadable means the file could not be opened or read. The
+	// underlying error is wrapped too, so errors.Is(err, fs.ErrNotExist)
+	// also works.
+	ErrUnreadable = errors.New("schedule cannot be read")
+
+	// ErrInvalidJSON means the content is not well-formed JSON.
+	ErrInvalidJSON = errors.New("schedule is not valid JSON")
+
+	// ErrMissingAirports means the top level is not an object with an
+	// "airports" array.
 	ErrMissingAirports = errors.New(`schedule has no "airports" array`)
-	ErrMissingFlights  = errors.New(`schedule has no "flights" array`)
+
+	// ErrMissingFlights means the top level has no "flights" array.
+	ErrMissingFlights = errors.New(`schedule has no "flights" array`)
+
+	// ErrNoValidAirports means every airport record was skipped, or there
+	// were none.
 	ErrNoValidAirports = errors.New("schedule has no valid airport")
-	ErrNoValidFlights  = errors.New("schedule has no valid flight")
+
+	// ErrNoValidFlights means every flight record was skipped, or there were
+	// none.
+	ErrNoValidFlights = errors.New("schedule has no valid flight")
 )
 
 // Load reads and validates the schedule file at path. See Parse.
