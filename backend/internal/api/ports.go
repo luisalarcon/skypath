@@ -8,11 +8,15 @@
 // Public API:
 //
 //	NewHandler(deps Dependencies) http.Handler
+//
+// NewHandler returns the complete handler for the service: every route with
+// the full middleware chain already applied, ready to hand to an http.Server.
 package api
 
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/luisalarcon/skypath/backend/internal/flight"
 )
@@ -24,6 +28,10 @@ type Dependencies struct {
 	Airports AirportDirectory
 	Dataset  DatasetInfo
 	Logger   *slog.Logger
+
+	// RequestTimeout bounds the handling of a single request. Zero means no
+	// limit.
+	RequestTimeout time.Duration
 }
 
 // Searcher finds itineraries for a validated query.
