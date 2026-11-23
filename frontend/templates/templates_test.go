@@ -186,3 +186,99 @@ func TestSearchPageLayout(t *testing.T) {
 		})
 	}
 }
+
+func TestSearchFormFields(t *testing.T) {
+	html := render(t, Search, resultsPage())
+
+	form := tagByID(t, html, "search-form")
+	if form.attrs["method"] != "get" || form.attrs["action"] != "/" {
+		t.Errorf("form must GET /, got method=%q action=%q", form.attrs["method"], form.attrs["action"])
+	}
+	for _, f := range []struct{ id, label, value string }{
+		{"origin", "From", "JFK"},
+		{"destination", "To", "LAX"},
+		{"date", "Date", "2024-03-15"},
+	} {
+		assertContains(t, html, `<label class="field__label" for="`+f.id+`">`+f.label+`</label>`)
+		input := tagByID(t, html, f.id)
+		if input.attrs["name"] != f.id {
+			t.Errorf("input %s has name %q", f.id, input.attrs["name"])
+		}
+		if input.attrs["value"] != f.value {
+			t.Errorf("input %s has value %q, want %q", f.id, input.attrs["value"], f.value)
+		}
+		if got, want := input.attrs["aria-describedby"], f.id+"-error "+f.id+"-hint"; got != want {
+			t.Errorf("input %s aria-describedby = %q, want %q", f.id, got, want)
+		}
+		if _, ok := input.attrs["aria-invalid"]; ok {
+			t.Errorf("valid input %s is marked aria-invalid", f.id)
+		}
+		if msg := textByID(html, f.id+"-error"); msg != "" {
+			t.Errorf("valid input %s shows message %q", f.id, msg)
+		}
+	}
+
+	for _, id := range []string{"origin", "destination"} {
+		if got := tagByID(t, html, id).attrs["list"]; got != "airports" {
+			t.Errorf("input %s list = %q, want airports", id, got)
+		}
+	}
+	assertContains(t, html,
+		`<datalist id="airports">`,
+		`<option value="JFK">New York · John F. Kennedy International</option>`,
+		`<option value="NRT">Tokyo · Narita International</option>`,
+	)
+	if got := textByID(html, "origin-hint"); got != "New York · John F. Kennedy International" {
+		t.Errorf("origin hint = %q", got)
+	}
+	if got := textByID(html, "destination-hint"); got != "Los Angeles · Los Angeles International" {
+		t.Errorf("destination hint = %q", got)
+	}
+
+	date := tagByID(t, html, "date")
+	if date.attrs["type"] != "date" || date.attrs["min"] != "2024-03-15" || date.attrs["max"] != "2024-03-16" {
+		t.Errorf("date input type/min/max = %q/%q/%q", date.attrs["type"], date.attrs["min"], date.attrs["max"])
+	}
+	assertContains(t, html, "Mar 15, 2024 – Mar 16, 2024")
+
+	// The swap control needs script, so it starts hidden.
+	assertContains(t, html, `<div class="search-form__swap" hidden>`)
+}
+
+func TestSearchFormWithoutBounds(t *testing.T) {
+	html := render(t, Search, unavailablePage())
+	date := tagByID(t, html, "date")
+	for _, attr := range []string{"min", "max"} {
+		if _, ok := date.attrs[attr]; ok {
+			t.Errorf("date input has %s although the bounds are unknown", attr)
+		}
+	}
+	if strings.Contains(html, "<option") {
+		t.Errorf("datalist has options although there are no airports")
+	}
+}
+
+func TestFieldErrorsAreWired(t *testing.T) {
+	page := invalidPage()
+	html := render(t, Search, page)
+	for id, want := range map[string]string{
+		"origin":      page.Form.Errors.Origin,
+		"destination": page.Form.Errors.Destination,
+		"date":        page.Form.Errors.Date,
+	} {
+		input := tagByID(t, html, id)
+		if input.attrs["aria-invalid"] != "true" {
+			t.Errorf("input %s is not marked aria-invalid", id)
+		}
+		if !strings.Contains(" "+input.attrs["aria-describedby"]+" ", " "+id+"-error ") {
+			t.Errorf("input %s is not described by its message: %q", id, input.attrs["aria-describedby"])
+		}
+		if got := textByID(html, id+"-error"); got != want {
+			t.Errorf("message for %s = %q, want %q", id, got, want)
+		}
+	}
+	// The form keeps what the user typed.
+	if got := tagByID(t, html, "origin").attrs["value"]; got != "XXX" {
+		t.Errorf("origin value = %q, want XXX", got)
+	}
+}

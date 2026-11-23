@@ -1,0 +1,60 @@
+{{/*
+  The search form; data is view.Page. It is a plain GET to "/" and works
+  without script. Each field's message element is always present, empty
+  when the field is valid, so the script can update it in place; the input
+  is always described by its message and its hint.
+*/}}
+
+{{define "search-form"}}
+<form id="search-form" class="search-form" action="/" method="get" role="search" aria-label="Flights">
+  <div class="field field--origin">
+    <label class="field__label" for="origin">From</label>
+    <input class="field__input field__input--code" id="origin" name="origin" type="text"
+      value="{{.Form.Origin}}" list="airports" placeholder="City or code"
+      required autocomplete="off" autocapitalize="characters" spellcheck="false"
+      aria-describedby="origin-error origin-hint"{{if .Form.Errors.Origin}} aria-invalid="true"{{end}}>
+    <p class="field__error" id="origin-error">{{.Form.Errors.Origin}}</p>
+    <p class="field__hint" id="origin-hint">{{.Form.OriginName}}</p>
+  </div>
+
+  <div class="search-form__swap" hidden>
+    <button class="swap" id="swap" type="button" aria-label="Swap origin and destination">
+      {{template "icon-swap"}}
+    </button>
+  </div>
+
+  <div class="field field--destination">
+    <label class="field__label" for="destination">To</label>
+    <input class="field__input field__input--code" id="destination" name="destination" type="text"
+      value="{{.Form.Destination}}" list="airports" placeholder="City or code"
+      required autocomplete="off" autocapitalize="characters" spellcheck="false"
+      aria-describedby="destination-error destination-hint"{{if .Form.Errors.Destination}} aria-invalid="true"{{end}}>
+    <p class="field__error" id="destination-error">{{.Form.Errors.Destination}}</p>
+    <p class="field__hint" id="destination-hint">{{.Form.DestinationName}}</p>
+  </div>
+
+  <div class="field field--date">
+    <label class="field__label" for="date">Date</label>
+    <input class="field__input" id="date" name="date" type="date" value="{{.Form.Date}}"
+      {{- with .Form.MinDate}} min="{{.}}"{{end}}
+      {{- with .Form.MaxDate}} max="{{.}}"{{end}}
+      required aria-describedby="date-error date-hint"{{if .Form.Errors.Date}} aria-invalid="true"{{end}}>
+    <p class="field__error" id="date-error">{{.Form.Errors.Date}}</p>
+    <p class="field__hint" id="date-hint">{{with .Dataset}}<span class="visually-hidden">The schedule covers </span>{{.FirstDate}} – {{.LastDate}}{{end}}</p>
+  </div>
+
+  <div class="search-form__submit">
+    <button class="button button--primary search-submit" type="submit">
+      <span class="spinner" aria-hidden="true"></span>
+      {{template "icon-search"}}
+      <span class="search-submit__label" data-loading-label="Searching…">Search</span>
+    </button>
+  </div>
+
+  <datalist id="airports">
+    {{- range .Airports}}
+    <option value="{{.Code}}">{{.City}} · {{.Name}}</option>
+    {{- end}}
+  </datalist>
+</form>
+{{end}}

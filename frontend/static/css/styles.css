@@ -389,6 +389,307 @@ main {
 }
 
 /* ---------------------------------------------------------------------------
+   Search panel
+   ------------------------------------------------------------------------ */
+
+.search {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.search__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.025em;
+}
+
+.search__panel {
+  container: search / inline-size;
+  padding: clamp(var(--space-4), 3vw, var(--space-6));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+/*
+  The form is one grid whose areas rearrange with the panel's width: stacked
+  on phones, two columns in between, a single row when there is room. The
+  swap control only exists once the script has run, so the enhanced layouts
+  reserve a column for it and the plain ones do not.
+*/
+.search-form {
+  /* Height of a label and its gap: lines buttons up with the inputs. */
+  --label-block: 1.75rem;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "origin" "destination" "date" "submit";
+  gap: var(--space-4) var(--space-3);
+}
+
+.is-enhanced .search-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "origin swap" "destination swap" "date date" "submit submit";
+}
+
+.field--origin { grid-area: origin; }
+.field--destination { grid-area: destination; }
+.field--date { grid-area: date; }
+.search-form__swap { grid-area: swap; }
+.search-form__submit { grid-area: submit; }
+
+/* Fields */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.field__label {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: 1.25rem;
+}
+
+.field__input {
+  width: 100%;
+  min-width: 0;
+  height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-md);
+  /* A transparent outline still shows in forced-colours mode. */
+  outline: 2px solid transparent;
+  outline-offset: 0;
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.field__input:hover {
+  border-color: color-mix(in oklch, var(--color-border-strong), var(--color-text) 30%);
+}
+
+.field__input:focus,
+.field__input:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+  outline: 2px solid transparent;
+}
+
+/* Airport codes read like a boarding pass: heavier and slightly tracked. */
+.field__input--code {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+}
+
+.field__input::placeholder {
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+/* Suggestions appear as the user types; the list's arrow is only noise. */
+.field__input--code::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+.field__input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.field__input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.field__input::-webkit-calendar-picker-indicator {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.field__input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.field__input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.field__input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-error) 25%, transparent);
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--color-error);
+}
+
+.field__error:empty {
+  display: none;
+}
+
+/* A small mark so the message never relies on colour alone. */
+.field__error::before {
+  content: "!";
+  content: "!" / "";
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1rem;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  color: var(--color-surface);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.field__hint {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+/* Swap control */
+
+.search-form__swap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swap {
+  display: grid;
+  place-items: center;
+  width: var(--target-min);
+  height: var(--target-min);
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease;
+}
+
+.swap:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+/* Stacked fields swap vertically, side-by-side fields horizontally. */
+.swap .icon {
+  transform: rotate(90deg);
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+/* Submit */
+
+.search-form__submit {
+  display: flex;
+}
+
+.search-submit {
+  width: 100%;
+  height: var(--control-height);
+  padding-inline: var(--space-6);
+}
+
+.spinner {
+  display: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+  animation: spin 0.7s linear infinite;
+}
+
+.is-loading .search-submit .spinner {
+  display: inline-block;
+}
+
+.is-loading .search-submit .icon--search {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Wider panels: the container queries come last so they win over the
+   stacked defaults above. */
+
+@container search (min-width: 34rem) {
+  .search-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "origin destination" "date submit";
+  }
+
+  .is-enhanced .search-form {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: "origin swap destination" "date date submit";
+  }
+
+  .search-form__swap {
+    align-items: flex-start;
+    padding-top: calc(var(--label-block) + (var(--control-height) - var(--target-min)) / 2);
+  }
+
+  .swap .icon {
+    transform: none;
+  }
+
+  .search-form__submit {
+    padding-top: var(--label-block);
+  }
+
+  /* Side by side, reserve the hint line so the row does not jump as hints
+     come and go. Stacked fields can simply grow. */
+  .field__hint {
+    min-height: 1lh;
+  }
+}
+
+@container search (min-width: 46rem) {
+  .search-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(10.5rem, 0.9fr) auto;
+    grid-template-areas: "origin destination date submit";
+  }
+
+  .is-enhanced .search-form {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(10.5rem, 0.9fr) auto;
+    grid-template-areas: "origin swap destination date submit";
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Error page
    ------------------------------------------------------------------------ */
 
