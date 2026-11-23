@@ -25,7 +25,7 @@ The zone rules come from the IANA time zone database, which is compiled into the
 
 A fixed table of offsets would get at least one of these wrong.
 
-**Known limit.** A local time that falls in a daylight-saving gap or overlap is ambiguous. Go resolves a gap by moving forward and an overlap by taking the first occurrence. No time in the current schedule is affected.
+**Known limit.** A local time inside a daylight-saving gap does not exist, and the loader rejects the record. A local time inside an overlap occurs twice; the first occurrence is used. No time in the current schedule is affected by either.
 
 ## Connection rules
 

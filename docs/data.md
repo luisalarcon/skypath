@@ -24,7 +24,7 @@ Times are **local to their airport** and carry no offset. `departureTime` is in 
 
 - 25 airports in 12 countries; 13 are in the US.
 - 303 flight records, one airline, 132 distinct routes among the valid records.
-- 301 flights depart on 2024-03-15 and 2 on 2024-03-16. Arrivals run to 2024-03-17.
+- Of the 303 records, 301 depart on 2024-03-15 and 2 on 2024-03-16. Arrivals run to 2024-03-17.
 - Two cities have more than one airport: New York (JFK, LGA, EWR) and Tokyo (NRT, HND).
 
 **Irregularities found in it**
@@ -71,7 +71,7 @@ Checked in this order. The first failure is the recorded reason.
 | Duplicate | The first flight with a given number wins; later ones are skipped. |
 | `origin`, `destination` | Trimmed and upper-cased. Each must be a loaded airport. |
 | Distinct endpoints | Origin and destination must differ. |
-| `departureTime`, `arrivalTime` | Exactly `YYYY-MM-DDTHH:MM:SS`, read in the airport's own zone. |
+| `departureTime`, `arrivalTime` | Exactly `YYYY-MM-DDTHH:MM:SS`, read in the airport's own zone. A time that does not exist there, inside a daylight-saving gap, is rejected rather than moved. |
 | Order | The arrival instant must be after the departure instant. |
 | `price` | A JSON number or a string holding a decimal. Non-negative, at most two decimal places. |
 | `airline`, `aircraft` | Optional text, kept as given. |
@@ -80,7 +80,7 @@ Unknown extra fields are ignored. A record that is not a JSON object is skipped.
 
 ### What is skipped and what is fatal
 
-A bad **record** is skipped. It is listed with a label and a plain-language reason, in file order:
+A bad **record** is skipped. It is listed with a label and a plain-language reason, airports first and then flights, each in file order:
 
 ```
 flight SP995: unknown origin airport "JKF"
