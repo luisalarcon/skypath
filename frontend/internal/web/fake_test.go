@@ -64,13 +64,19 @@ func newFakeAPI(t *testing.T, searchExample string) *fakeAPI {
 
 	f := &fakeAPI{AirportList: airports.Airports, DatasetInfo: &dataset}
 	if searchExample != "" {
-		var resp client.SearchResponse
-		loadExample(t, searchExample, &resp)
-		f.SearchFunc = func(context.Context, string, string, string) (*client.SearchResponse, error) {
-			return &resp, nil
-		}
+		f.searchReturns(t, searchExample)
 	}
 	return f
+}
+
+// searchReturns makes every search answer with the named canonical payload.
+func (f *fakeAPI) searchReturns(t *testing.T, example string) {
+	t.Helper()
+	var resp client.SearchResponse
+	loadExample(t, example, &resp)
+	f.SearchFunc = func(context.Context, string, string, string) (*client.SearchResponse, error) {
+		return &resp, nil
+	}
 }
 
 // failSearchWith makes every search fail with err.
