@@ -1,0 +1,322 @@
+openapi: 3.0.3
+
+info:
+  title: SkyPath Flight Search API
+  version: 1.0.0
+  description: |
+    Finds flight itineraries between two airports on a given date, including
+    connections of up to two stops.
+
+    All times are returned in the local time of their airport as RFC 3339
+    timestamps with a UTC offset, so each value is both the local wall-clock
+    time and an unambiguous instant. Durations are whole minutes. Prices are
+    decimal amounts in the response's `currency`.
+
+    Errors use the problem-details format (RFC 9457) with the media type
+    `application/problem+json`.
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+tags:
+  - name: Search
+  - name: Reference data
+  - name: Operations
+
+paths:
+  /api/v1/search:
+    get:
+      tags: [Search]
+      operationId: searchItineraries
+      summary: Search itineraries
+      description: |
+        Returns every valid itinerary from `origin` to `destination` whose first
+        flight departs on `date` in the origin airport's local time. Results are
+        ordered by total travel time, then price, then departure time.
+
+        A search that is valid but matches nothing returns `200` with an empty
+        list.
+      parameters:
+        - name: origin
+          in: query
+          required: true
+          description: IATA code of the departure airport. Case-insensitive.
+          schema: { type: string, pattern: "^[A-Za-z]{3}$" }
+          example: JFK
+        - name: destination
+          in: query
+          required: true
+          description: IATA code of the arrival airport. Case-insensitive.
+          schema: { type: string, pattern: "^[A-Za-z]{3}$" }
+          example: LAX
+        - name: date
+          in: query
+          required: true
+          description: Departure date at the origin airport, `YYYY-MM-DD`.
+          schema: { type: string, format: date }
+          example: "2024-03-15"
+      responses:
+        "200":
+          description: The itineraries found, possibly none.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResponse" }
+              examples:
+                directAndOneStop:
+                  summary: A direct flight and a one-stop connection
+                  externalValue: examples/search-success.json
+                twoStops:
+                  summary: A two-stop itinerary ending two days later
+                  externalValue: examples/search-two-stops.json
+                empty:
+                  summary: No itineraries
+                  externalValue: examples/search-empty.json
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "500": { $ref: "#/components/responses/InternalProblem" }
+
+  /api/v1/airports:
+    get:
+      tags: [Reference data]
+      operationId: listAirports
+      summary: List airports
+      description: Every airport in the schedule, ordered by code.
+      responses:
+        "200":
+          description: The airport list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AirportsResponse" }
+              examples:
+                sample:
+                  externalValue: examples/airports.json
+        "500": { $ref: "#/components/responses/InternalProblem" }
+
+  /api/v1/dataset:
+    get:
+      tags: [Reference data]
+      operationId: getDataset
+      summary: Describe the loaded schedule
+      description: |
+        Size of the schedule and the range of departure dates it covers. Clients
+        use the date range to choose sensible defaults and to explain empty
+        results.
+      responses:
+        "200":
+          description: Schedule summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DatasetResponse" }
+              examples:
+                sample:
+                  externalValue: examples/dataset.json
+        "500": { $ref: "#/components/responses/InternalProblem" }
+
+  /healthz:
+    get:
+      tags: [Operations]
+      operationId: getHealth
+      summary: Liveness
+      description: Succeeds whenever the process is able to serve requests.
+      responses:
+        "200":
+          description: The process is alive.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+
+  /readyz:
+    get:
+      tags: [Operations]
+      operationId: getReadiness
+      summary: Readiness
+      description: |
+        Succeeds once the schedule is loaded. Also reports what was loaded and
+        any source records that were rejected, with the reason for each.
+      responses:
+        "200":
+          description: Ready to answer searches.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReadinessResponse" }
+              examples:
+                sample:
+                  externalValue: examples/ready.json
+
+components:
+  responses:
+    ValidationProblem:
+      description: One or more request parameters are missing or invalid.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          examples:
+            validation:
+              externalValue: examples/problem-validation.json
+    InternalProblem:
+      description: The request could not be completed because of a server error.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          examples:
+            internal:
+              externalValue: examples/problem-internal.json
+
+  schemas:
+    Airport:
+      type: object
+      required: [code, name, city, country, timezone]
+      properties:
+        code: { type: string, description: IATA code, example: JFK }
+        name: { type: string, example: John F. Kennedy International }
+        city: { type: string, example: New York }
+        country: { type: string, description: ISO 3166-1 alpha-2 country code, example: US }
+        timezone: { type: string, description: IANA time zone name, example: America/New_York }
+
+    Segment:
+      type: object
+      description: A single flight within an itinerary.
+      required: [flightNumber, airline, aircraft, origin, destination, departureTime, arrivalTime, durationMinutes, price]
+      properties:
+        flightNumber: { type: string, example: SP110 }
+        airline: { type: string, example: SkyPath Airways }
+        aircraft: { type: string, example: A319 }
+        origin: { $ref: "#/components/schemas/Airport" }
+        destination: { $ref: "#/components/schemas/Airport" }
+        departureTime:
+          type: string
+          format: date-time
+          description: Local time at the origin airport, with its UTC offset.
+          example: "2024-03-15T07:00:00-04:00"
+        arrivalTime:
+          type: string
+          format: date-time
+          description: Local time at the destination airport, with its UTC offset.
+          example: "2024-03-15T08:30:00-05:00"
+        durationMinutes: { type: integer, minimum: 1, example: 150 }
+        price: { type: number, minimum: 0, example: 189.00 }
+
+    Layover:
+      type: object
+      description: The wait between two consecutive segments.
+      required: [airport, durationMinutes, type]
+      properties:
+        airport: { $ref: "#/components/schemas/Airport" }
+        durationMinutes: { type: integer, minimum: 45, maximum: 360, example: 45 }
+        type:
+          type: string
+          enum: [domestic, international]
+          description: |
+            `domestic` when both connecting flights stay within one country,
+            otherwise `international`. Determines the minimum layover.
+
+    Itinerary:
+      type: object
+      description: |
+        One way of travelling from origin to destination. `layovers[i]` is the
+        connection between `segments[i]` and `segments[i+1]`.
+      required: [stops, departureTime, arrivalTime, totalDurationMinutes, totalPrice, segments, layovers]
+      properties:
+        stops: { type: integer, minimum: 0, maximum: 2, example: 1 }
+        departureTime: { type: string, format: date-time, description: Departure of the first segment. }
+        arrivalTime: { type: string, format: date-time, description: Arrival of the last segment. }
+        totalDurationMinutes:
+          type: integer
+          description: First departure to last arrival, including layovers.
+          example: 450
+        totalPrice: { type: number, description: Sum of the segment prices., example: 414.00 }
+        segments:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items: { $ref: "#/components/schemas/Segment" }
+        layovers:
+          type: array
+          maxItems: 2
+          items: { $ref: "#/components/schemas/Layover" }
+
+    SearchResponse:
+      type: object
+      required: [origin, destination, date, currency, count, itineraries]
+      properties:
+        origin: { $ref: "#/components/schemas/Airport" }
+        destination: { $ref: "#/components/schemas/Airport" }
+        date: { type: string, format: date, example: "2024-03-15" }
+        currency: { type: string, description: ISO 4217 code for every price in the response., example: USD }
+        count: { type: integer, minimum: 0, example: 27 }
+        itineraries:
+          type: array
+          description: Ordered by total duration, then price, then departure time.
+          items: { $ref: "#/components/schemas/Itinerary" }
+
+    AirportsResponse:
+      type: object
+      required: [count, airports]
+      properties:
+        count: { type: integer, example: 25 }
+        airports:
+          type: array
+          items: { $ref: "#/components/schemas/Airport" }
+
+    DatasetResponse:
+      type: object
+      required: [airports, flights, firstDepartureDate, lastDepartureDate, skippedRecords]
+      properties:
+        airports: { type: integer, example: 25 }
+        flights: { type: integer, example: 302 }
+        firstDepartureDate: { type: string, format: date, example: "2024-03-15" }
+        lastDepartureDate: { type: string, format: date, example: "2024-03-16" }
+        skippedRecords: { type: integer, description: Source records rejected at load time., example: 1 }
+
+    ReadinessResponse:
+      type: object
+      required: [status, dataset]
+      properties:
+        status: { type: string, enum: [ready] }
+        dataset:
+          type: object
+          required: [airports, flights, skipped]
+          properties:
+            airports: { type: integer, example: 25 }
+            flights: { type: integer, example: 302 }
+            skipped:
+              type: array
+              items:
+                type: object
+                required: [record, reason]
+                properties:
+                  record: { type: string, example: flight SP995 }
+                  reason: { type: string, example: 'unknown origin airport "JKF"' }
+
+    FieldError:
+      type: object
+      required: [field, code, message]
+      properties:
+        field: { type: string, enum: [origin, destination, date] }
+        code:
+          type: string
+          enum: [required, invalid_format, unknown_airport, same_as_origin]
+        message: { type: string, description: Human-readable and safe to show to end users. }
+
+    Problem:
+      type: object
+      description: Problem details, RFC 9457.
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, example: about:blank }
+        title: { type: string, description: The HTTP status phrase., example: Bad Request }
+        status: { type: integer, example: 400 }
+        detail: { type: string, example: The search request is invalid. }
+        code:
+          type: string
+          description: Stable, machine-readable problem identifier.
+          enum: [validation_failed, not_found, method_not_allowed, timeout, internal_error]
+        requestId: { type: string, description: The ID of the failed request, for correlating with logs. }
+        errors:
+          type: array
+          description: Present for `validation_failed`. One entry per invalid field.
+          items: { $ref: "#/components/schemas/FieldError" }

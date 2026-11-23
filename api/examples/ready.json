@@ -1,0 +1,10 @@
+{
+  "status": "ready",
+  "dataset": {
+    "airports": 25,
+    "flights": 302,
+    "skipped": [
+      {"record": "flight SP995", "reason": "unknown origin airport \"JKF\""}
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "origin": {"code": "JFK", "name": "John F. Kennedy International", "city": "New York", "country": "US", "timezone": "America/New_York"},
+  "destination": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+  "date": "2024-03-20",
+  "currency": "USD",
+  "count": 0,
+  "itineraries": []
+}

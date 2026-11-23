@@ -1,0 +1,68 @@
+{
+  "origin": {"code": "JFK", "name": "John F. Kennedy International", "city": "New York", "country": "US", "timezone": "America/New_York"},
+  "destination": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+  "date": "2024-03-15",
+  "currency": "USD",
+  "count": 2,
+  "itineraries": [
+    {
+      "stops": 0,
+      "departureTime": "2024-03-15T08:30:00-04:00",
+      "arrivalTime": "2024-03-15T11:45:00-07:00",
+      "totalDurationMinutes": 375,
+      "totalPrice": 299.00,
+      "segments": [
+        {
+          "flightNumber": "SP101",
+          "airline": "SkyPath Airways",
+          "aircraft": "A320",
+          "origin": {"code": "JFK", "name": "John F. Kennedy International", "city": "New York", "country": "US", "timezone": "America/New_York"},
+          "destination": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+          "departureTime": "2024-03-15T08:30:00-04:00",
+          "arrivalTime": "2024-03-15T11:45:00-07:00",
+          "durationMinutes": 375,
+          "price": 299.00
+        }
+      ],
+      "layovers": []
+    },
+    {
+      "stops": 1,
+      "departureTime": "2024-03-15T07:00:00-04:00",
+      "arrivalTime": "2024-03-15T11:30:00-07:00",
+      "totalDurationMinutes": 450,
+      "totalPrice": 414.00,
+      "segments": [
+        {
+          "flightNumber": "SP110",
+          "airline": "SkyPath Airways",
+          "aircraft": "A319",
+          "origin": {"code": "JFK", "name": "John F. Kennedy International", "city": "New York", "country": "US", "timezone": "America/New_York"},
+          "destination": {"code": "ORD", "name": "O'Hare International", "city": "Chicago", "country": "US", "timezone": "America/Chicago"},
+          "departureTime": "2024-03-15T07:00:00-04:00",
+          "arrivalTime": "2024-03-15T08:30:00-05:00",
+          "durationMinutes": 150,
+          "price": 189.00
+        },
+        {
+          "flightNumber": "SP120",
+          "airline": "SkyPath Airways",
+          "aircraft": "A320",
+          "origin": {"code": "ORD", "name": "O'Hare International", "city": "Chicago", "country": "US", "timezone": "America/Chicago"},
+          "destination": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+          "departureTime": "2024-03-15T09:15:00-05:00",
+          "arrivalTime": "2024-03-15T11:30:00-07:00",
+          "durationMinutes": 255,
+          "price": 225.00
+        }
+      ],
+      "layovers": [
+        {
+          "airport": {"code": "ORD", "name": "O'Hare International", "city": "Chicago", "country": "US", "timezone": "America/Chicago"},
+          "durationMinutes": 45,
+          "type": "domestic"
+        }
+      ]
+    }
+  ]
+}

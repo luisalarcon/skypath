@@ -1,0 +1,63 @@
+{
+  "origin": {"code": "SFO", "name": "San Francisco International", "city": "San Francisco", "country": "US", "timezone": "America/Los_Angeles"},
+  "destination": {"code": "NRT", "name": "Narita International", "city": "Tokyo", "country": "JP", "timezone": "Asia/Tokyo"},
+  "date": "2024-03-15",
+  "currency": "USD",
+  "count": 1,
+  "itineraries": [
+    {
+      "stops": 2,
+      "departureTime": "2024-03-15T14:00:00-07:00",
+      "arrivalTime": "2024-03-17T03:00:00+09:00",
+      "totalDurationMinutes": 1260,
+      "totalPrice": 1137.00,
+      "segments": [
+        {
+          "flightNumber": "SP981",
+          "airline": "SkyPath Airways",
+          "aircraft": "B737",
+          "origin": {"code": "SFO", "name": "San Francisco International", "city": "San Francisco", "country": "US", "timezone": "America/Los_Angeles"},
+          "destination": {"code": "DEN", "name": "Denver International", "city": "Denver", "country": "US", "timezone": "America/Denver"},
+          "departureTime": "2024-03-15T14:00:00-07:00",
+          "arrivalTime": "2024-03-15T17:30:00-06:00",
+          "durationMinutes": 150,
+          "price": 199.00
+        },
+        {
+          "flightNumber": "SP212",
+          "airline": "SkyPath Airways",
+          "aircraft": "A320",
+          "origin": {"code": "DEN", "name": "Denver International", "city": "Denver", "country": "US", "timezone": "America/Denver"},
+          "destination": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+          "departureTime": "2024-03-15T19:00:00-06:00",
+          "arrivalTime": "2024-03-15T20:15:00-07:00",
+          "durationMinutes": 135,
+          "price": 139.00
+        },
+        {
+          "flightNumber": "SP501",
+          "airline": "SkyPath Airways",
+          "aircraft": "B777",
+          "origin": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+          "destination": {"code": "NRT", "name": "Narita International", "city": "Tokyo", "country": "JP", "timezone": "Asia/Tokyo"},
+          "departureTime": "2024-03-15T23:00:00-07:00",
+          "arrivalTime": "2024-03-17T03:00:00+09:00",
+          "durationMinutes": 720,
+          "price": 799.00
+        }
+      ],
+      "layovers": [
+        {
+          "airport": {"code": "DEN", "name": "Denver International", "city": "Denver", "country": "US", "timezone": "America/Denver"},
+          "durationMinutes": 90,
+          "type": "domestic"
+        },
+        {
+          "airport": {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+          "durationMinutes": 165,
+          "type": "international"
+        }
+      ]
+    }
+  ]
+}

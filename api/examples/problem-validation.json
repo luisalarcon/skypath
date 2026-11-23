@@ -1,0 +1,12 @@
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "The search request is invalid.",
+  "code": "validation_failed",
+  "requestId": "3f2a9c1e7b4d4a10",
+  "errors": [
+    {"field": "origin", "code": "unknown_airport", "message": "Unknown airport code XXX."},
+    {"field": "date", "code": "invalid_format", "message": "Date must be a valid date in YYYY-MM-DD format."}
+  ]
+}

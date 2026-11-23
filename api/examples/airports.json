@@ -1,0 +1,8 @@
+{
+  "count": 3,
+  "airports": [
+    {"code": "JFK", "name": "John F. Kennedy International", "city": "New York", "country": "US", "timezone": "America/New_York"},
+    {"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"},
+    {"code": "ORD", "name": "O'Hare International", "city": "Chicago", "country": "US", "timezone": "America/Chicago"}
+  ]
+}
