@@ -68,6 +68,7 @@ func (s *server) routes() []route {
 	return []route{
 		{"/api/v1/airports", s.handleAirports},
 		{"/api/v1/dataset", s.handleDataset},
+		{"/api/v1/search", s.handleSearch},
 		{"/healthz", s.handleHealth},
 		{"/readyz", s.handleReady},
 	}
