@@ -1,0 +1,8 @@
+# Normalise line endings to LF everywhere so Dockerfiles, shell snippets and
+# Go sources behave the same on every platform.
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff2 binary
