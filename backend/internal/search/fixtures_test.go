@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/luisalarcon/skypath/backend/internal/flight"
@@ -65,4 +66,57 @@ func newFlight(number string, from, to flight.Airport, departs, arrives string, 
 		Arrival:     local(to, arrives),
 		Price:       flight.Money(price * 100),
 	}
+}
+
+// testAirports is every airport the hand-written tests know about.
+var testAirports = []flight.Airport{jfk, lga, bos, mia, ord, den, phx, lax, sfo, sea, lhr, cdg, mex, nrt, syd}
+
+// memSource is an in-memory FlightSource. Like the real store it keeps each
+// airport's departures sorted by time and answers "at or after" with a
+// binary search, so benchmarks measure the engine rather than a linear scan.
+type memSource struct {
+	airports   map[string]flight.Airport
+	departures map[string][]flight.Flight
+}
+
+// newSource indexes flights for the given airports. Flights that depart at
+// the same instant keep the order they were given in, so tests can check
+// that results do not depend on insertion order.
+func newSource(airports []flight.Airport, flights []flight.Flight) *memSource {
+	s := &memSource{
+		airports:   make(map[string]flight.Airport, len(airports)),
+		departures: make(map[string][]flight.Flight),
+	}
+	for _, a := range airports {
+		s.airports[a.Code] = a
+	}
+	for _, f := range flights {
+		s.departures[f.Origin.Code] = append(s.departures[f.Origin.Code], f)
+	}
+	for _, list := range s.departures {
+		slices.SortStableFunc(list, func(a, b flight.Flight) int {
+			return a.Departure.Compare(b.Departure)
+		})
+	}
+	return s
+}
+
+// sourceOf indexes flights over testAirports.
+func sourceOf(flights ...flight.Flight) *memSource {
+	return newSource(testAirports, flights)
+}
+
+func (s *memSource) Airport(code string) (flight.Airport, bool) {
+	a, ok := s.airports[code]
+	return a, ok
+}
+
+func (s *memSource) DeparturesFrom(code string, notBefore time.Time) []flight.Flight {
+	list := s.departures[code]
+	i, _ := slices.BinarySearchFunc(list, notBefore, func(f flight.Flight, t time.Time) int {
+		return f.Departure.Compare(t)
+	})
+	// Clipping stops a caller that appends to the result from overwriting
+	// the index.
+	return slices.Clip(list[i:])
 }
