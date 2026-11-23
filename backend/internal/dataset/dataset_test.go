@@ -23,6 +23,12 @@ const (
 	laxRecord = `{"code": "LAX", "name": "Los Angeles International", "city": "Los Angeles", "country": "US", "timezone": "America/Los_Angeles"}`
 )
 
+// oneFlight is the smallest flight list that lets a document load, for tests
+// that are about airports.
+var oneFlight = []string{
+	`{"flightNumber": "SP101", "airline": "SkyPath Airways", "origin": "JFK", "destination": "LAX", "departureTime": "2024-03-15T08:30:00", "arrivalTime": "2024-03-15T11:45:00", "price": 299.00, "aircraft": "A320"}`,
+}
+
 // document assembles a schedule from raw JSON records.
 func document(airports, flights []string) string {
 	return `{"airports": [` + strings.Join(airports, ",") + `], "flights": [` + strings.Join(flights, ",") + `]}`
@@ -50,7 +56,7 @@ func TestParseAirport(t *testing.T) {
 		`{"code": " lax ", "name": " Los Angeles International ", "city": "Los Angeles", "country": "us", "timezone": "America/Los_Angeles", "elevation": 38}`,
 		jfkRecord,
 		`{"code": "SFO", "name": "San Francisco International", "city": "San Francisco", "country": "US", "timezone": "America/Los_Angeles"}`,
-	}, nil))
+	}, oneFlight))
 
 	if len(d.Skipped) != 0 {
 		t.Fatalf("Skipped = %v, want none", d.Skipped)
@@ -108,7 +114,7 @@ func TestAirportSkipReasons(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			d := mustParse(t, document([]string{jfkRecord, laxRecord, tc.record}, nil))
+			d := mustParse(t, document([]string{jfkRecord, laxRecord, tc.record}, oneFlight))
 			want := []Skipped{{Record: tc.label, Reason: tc.reason}}
 			if !slices.Equal(d.Skipped, want) {
 				t.Errorf("Skipped = %q, want %q", d.Skipped, want)
@@ -124,20 +130,21 @@ func TestOnlyAnAcceptedAirportClaimsItsCode(t *testing.T) {
 	d := mustParse(t, document([]string{
 		`{"code": "JFK", "name": "Broken", "city": "New York", "country": "US", "timezone": "America/Gotham"}`,
 		jfkRecord,
-	}, nil))
+		laxRecord,
+	}, oneFlight))
 
 	want := []Skipped{{Record: "airport JFK", Reason: `unknown time zone "America/Gotham"`}}
 	if !slices.Equal(d.Skipped, want) {
 		t.Errorf("Skipped = %q, want %q", d.Skipped, want)
 	}
-	if len(d.Airports) != 1 || d.Airports[0].Name != "John F. Kennedy International" {
+	if len(d.Airports) != 2 || d.Airports[0].Name != "John F. Kennedy International" {
 		t.Errorf("airports = %+v, want the valid JFK", d.Airports)
 	}
 }
 
 func TestAirportRecordIsolation(t *testing.T) {
 	// A record of the wrong shape between two good ones must not affect them.
-	d := mustParse(t, document([]string{jfkRecord, `{"code": {"nested": [1, 2]}, "name": 7}`, laxRecord}, nil))
+	d := mustParse(t, document([]string{jfkRecord, `{"code": {"nested": [1, 2]}, "name": 7}`, laxRecord}, oneFlight))
 
 	if got := airportCodes(d.Airports); !slices.Equal(got, []string{"JFK", "LAX"}) {
 		t.Errorf("airports = %v, want JFK and LAX", got)
@@ -155,7 +162,7 @@ func TestSkippedAirportsInFileOrder(t *testing.T) {
 		`{"code": "AAA"}`,
 		`true`,
 		jfkRecord,
-	}, nil))
+	}, oneFlight))
 
 	want := []string{"airport ZZZ: missing name", "airport AAA: missing name", "airport #4: record is a boolean, not a JSON object"}
 	var got []string
@@ -179,7 +186,7 @@ func TestFileLevelFailures(t *testing.T) {
 	}{
 		{"empty input", ``, ErrInvalidJSON},
 		{"truncated", `{"airports": [`, ErrInvalidJSON},
-		{"trailing data", document(valid, nil) + ` {}`, ErrInvalidJSON},
+		{"trailing data", document(valid, oneFlight) + ` {}`, ErrInvalidJSON},
 		{"not JSON at all", `airports: []`, ErrInvalidJSON},
 		{"top level is an array", `[]`, ErrMissingAirports},
 		{"top level is null", `null`, ErrMissingAirports},
@@ -237,7 +244,7 @@ func TestLoad(t *testing.T) {
 	}
 
 	good := filepath.Join(dir, "good.json")
-	if err := os.WriteFile(good, []byte(document([]string{jfkRecord, laxRecord}, nil)), 0o600); err != nil {
+	if err := os.WriteFile(good, []byte(document([]string{jfkRecord, laxRecord}, oneFlight)), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	d, err := Load(good)

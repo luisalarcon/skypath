@@ -45,6 +45,7 @@ var (
 	ErrMissingAirports = errors.New(`schedule has no "airports" array`)
 	ErrMissingFlights  = errors.New(`schedule has no "flights" array`)
 	ErrNoValidAirports = errors.New("schedule has no valid airport")
+	ErrNoValidFlights  = errors.New("schedule has no valid flight")
 )
 
 // Load reads and validates the schedule file at path. See Parse.
@@ -67,15 +68,18 @@ func Load(path string) (*Dataset, error) {
 // A record that fails validation is skipped and listed in Dataset.Skipped;
 // it never fails the whole load. Parse returns an error only when the
 // document as a whole is unusable: it cannot be read, is not valid JSON,
-// lacks the "airports" or "flights" array, or yields no valid airport. A
-// service started from such a file would look healthy while answering every
-// search with nothing, so the caller should refuse to start.
+// lacks the "airports" or "flights" array, or yields no valid airport or no
+// valid flight. A service started from such a file would look healthy while
+// answering every search with nothing, so the caller should refuse to start.
+//
+// Airports are returned in code order and flights in file order. Skipped
+// lists rejected airports, then rejected flights, each in file order.
 func Parse(r io.Reader) (*Dataset, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrUnreadable, err)
 	}
-	airportRecords, _, err := splitDocument(data)
+	airportRecords, flightRecords, err := splitDocument(data)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +103,20 @@ func Parse(r io.Reader) (*Dataset, error) {
 		return strings.Compare(a.Code, b.Code)
 	})
 
+	accepted := make(map[string]bool, len(flightRecords))
+	firstFlightSkip := len(d.Skipped)
+	for i, raw := range flightRecords {
+		f, err := parseFlight(raw, known, accepted)
+		if err != nil {
+			d.skip("flight", f.Number, i, err)
+			continue
+		}
+		accepted[f.Number] = true
+		d.Flights = append(d.Flights, f)
+	}
+	if len(d.Flights) == 0 {
+		return nil, noneValid(ErrNoValidFlights, d.Skipped[firstFlightSkip:])
+	}
 	return &d, nil
 }
 
