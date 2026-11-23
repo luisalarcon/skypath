@@ -25,8 +25,18 @@ type Airport struct {
 
 // NormalizeCode trims surrounding space and upper-cases an airport code so
 // that user input such as " jfk " compares equal to "JFK".
+//
+// Only ASCII letters are upper-cased. strings.ToUpper would also fold a few
+// non-ASCII letters, such as the dotless i, onto ASCII ones, which would let
+// text that was never an airport code pass for one.
 func NormalizeCode(s string) string {
-	return strings.ToUpper(strings.TrimSpace(s))
+	code := []byte(strings.TrimSpace(s))
+	for i, c := range code {
+		if 'a' <= c && c <= 'z' {
+			code[i] = c - 'a' + 'A'
+		}
+	}
+	return string(code)
 }
 
 // ValidCode reports whether s has the shape of an IATA airport code: exactly

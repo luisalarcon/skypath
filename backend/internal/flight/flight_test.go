@@ -41,6 +41,13 @@ func TestNormalizeAndValidCode(t *testing.T) {
 			t.Errorf("ValidCode(%q) = true, want false", code)
 		}
 	}
+	// Letters that Unicode case folding maps onto ASCII must not become a
+	// valid code by being normalised.
+	for _, input := range []string{"ıjk", "ſfo", "ÄBC"} {
+		if ValidCode(NormalizeCode(input)) {
+			t.Errorf("NormalizeCode(%q) = %q passes ValidCode, want it rejected", input, NormalizeCode(input))
+		}
+	}
 }
 
 func TestFlightDurationAcrossTimeZones(t *testing.T) {
