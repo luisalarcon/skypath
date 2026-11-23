@@ -39,9 +39,12 @@ down: ## Stop and remove the stack
 logs: ## Follow logs from the running stack
 	docker compose logs -f
 
-smoke: ## Check the running stack responds
+smoke: ## Check the running stack responds and can search
 	curl -fsS http://localhost:$(BACKEND_PORT)/healthz
+	@echo
+	curl -fsS http://localhost:$(BACKEND_PORT)/readyz
 	@echo
 	curl -fsS http://localhost:$(FRONTEND_PORT)/healthz
 	@echo
 	curl -fsS -o /dev/null -w "frontend / -> %{http_code}\n" http://localhost:$(FRONTEND_PORT)/
+	curl -fsS "http://localhost:$(BACKEND_PORT)/api/v1/search?origin=JFK&destination=LAX&date=2024-03-15" | grep -q '"count":27' && echo "search JFK-LAX -> 27 itineraries"

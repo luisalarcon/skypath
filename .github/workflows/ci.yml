@@ -71,8 +71,18 @@ jobs:
       - name: Check endpoints
         run: |
           curl -fsS http://localhost:8080/healthz
+          curl -fsS http://localhost:8080/readyz
           curl -fsS http://localhost:3000/healthz
           curl -fsS -o /dev/null -w "frontend / -> %{http_code}\n" http://localhost:3000/
+
+      - name: Search through the running API
+        run: |
+          # The reference result for this route is 27 itineraries.
+          curl -fsS "http://localhost:8080/api/v1/search?origin=JFK&destination=LAX&date=2024-03-15" \
+            | grep -q '"count":27'
+          # Invalid input must be a 400, not a 200 with an empty list.
+          test "$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://localhost:8080/api/v1/search?origin=XXX&destination=LAX&date=2024-03-15")" = "400"
 
       - name: Show logs on failure
         if: failure()
