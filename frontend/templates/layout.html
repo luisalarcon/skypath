@@ -1,0 +1,35 @@
+{{/*
+  Shared page furniture. "head" and the error page receive any value with
+  Title and AssetVersion fields (view.Page or view.ErrorPage).
+*/}}
+
+{{define "head"}}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{.Title}}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/icon.svg?v={{.AssetVersion}}">
+  <link rel="stylesheet" href="/static/css/styles.css?v={{.AssetVersion}}">
+{{end}}
+
+{{define "site-header"}}
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <div class="shell site-header__inner">
+      <a class="brand" href="/">
+        {{template "icon-mark"}}
+        <span class="brand__name">SkyPath</span>
+      </a>
+      <p class="site-header__tagline">Flight connections, in local time</p>
+    </div>
+  </header>
+{{end}}
+
+{{define "site-footer"}}
+  <footer class="site-footer">
+    <div class="shell site-footer__inner">
+      <p>Every time is shown in its own airport’s local time.</p>
+      <p><a href="/">New search</a></p>
+    </div>
+  </footer>
+{{end}}

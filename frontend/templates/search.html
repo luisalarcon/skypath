@@ -1,16 +1,16 @@
 {{define "search"}}<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Title}}</title>
-  <link rel="stylesheet" href="/static/css/styles.css?v={{.AssetVersion}}">
+{{template "head" .}}
 </head>
 <body>
-  <main>
-    <h1>SkyPath</h1>
-    <p>Flight connection search.</p>
+{{template "site-header"}}
+  <main id="main" class="shell" tabindex="-1">
+    <section class="search" aria-labelledby="search-title">
+      <h1 id="search-title" class="search__title">Find a flight connection</h1>
+    </section>
   </main>
+{{template "site-footer"}}
   <script src="/static/js/app.js?v={{.AssetVersion}}" defer></script>
 </body>
 </html>
