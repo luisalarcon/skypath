@@ -10,6 +10,8 @@
 //	(*Client).Search(ctx context.Context, origin, destination, date string) (*SearchResponse, error)
 //	(*Client).Airports(ctx context.Context) ([]Airport, error)
 //	(*Client).Dataset(ctx context.Context) (*Dataset, error)
+//	WithRequestID(ctx context.Context, id string) context.Context
+//	RequestID(ctx context.Context) string
 //
 // Errors:
 //
@@ -18,4 +20,6 @@
 //     shown beside the matching input.
 //   - An error wrapping ErrUnavailable when the backend cannot be reached,
 //     times out, returns a 5xx or returns a body that cannot be decoded.
+//   - Such an error also wraps ErrTimeout when the cause was a timeout, so
+//     callers can tell "too slow" from "broken".
 package client
