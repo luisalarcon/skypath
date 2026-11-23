@@ -33,10 +33,16 @@ func NewEngine(src FlightSource) *Engine {
 //
 // Results are ordered by total travel time, then total price, then
 // departure time, then flight numbers, so the order is fully deterministic.
+// If ctx is cancelled or its deadline passes, Search stops and returns
+// ctx.Err() with no itineraries.
+//
 // Each returned itinerary owns its Segments and Layovers slices.
 func (e *Engine) Search(ctx context.Context, q flight.Query) ([]flight.Itinerary, error) {
 	origin, err := e.validate(q)
 	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
@@ -58,6 +64,12 @@ func (e *Engine) Search(ctx context.Context, q flight.Query) ([]flight.Itinerary
 	for _, f := range e.src.DeparturesFrom(origin.Code, dayStart) {
 		if !f.Departure.Before(dayEnd) {
 			break
+		}
+		// Once per first flight is often enough: the work beneath one is
+		// bounded by two levels of six-hour windows, and checking here keeps
+		// the context out of the inner loop.
+		if err := ctx.Err(); err != nil {
+			return nil, err
 		}
 		if f.Destination.Code == origin.Code {
 			continue
