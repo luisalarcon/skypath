@@ -31,6 +31,8 @@ func NewEngine(src FlightSource) *Engine {
 // yields an error wrapping flight.ErrInvalidQuery. A valid query with no
 // matches yields an empty, non-nil slice and a nil error.
 //
+// Results are ordered by total travel time, then total price, then
+// departure time, then flight numbers, so the order is fully deterministic.
 // Each returned itinerary owns its Segments and Layovers slices.
 func (e *Engine) Search(ctx context.Context, q flight.Query) ([]flight.Itinerary, error) {
 	origin, err := e.validate(q)
@@ -63,6 +65,7 @@ func (e *Engine) Search(ctx context.Context, q flight.Query) ([]flight.Itinerary
 		w.extend(append(path, f), layovers, append(visited, origin.Code, f.Destination.Code))
 	}
 
+	slices.SortFunc(w.results, compareItineraries)
 	return w.results, nil
 }
 
