@@ -184,7 +184,9 @@ func newDatasetResponse(d DatasetInfo) datasetResponse {
 func newReadinessResponse(d DatasetInfo) readinessResponse {
 	skipped := make([]skippedRecordJSON, 0, len(d.Skipped))
 	for _, s := range d.Skipped {
-		skipped = append(skipped, skippedRecordJSON{Record: s.Record, Reason: s.Reason})
+		// The wire type mirrors the domain type field for field, so a
+		// conversion is enough, and it stops compiling if the two drift apart.
+		skipped = append(skipped, skippedRecordJSON(s))
 	}
 	return readinessResponse{
 		Status: "ready",
