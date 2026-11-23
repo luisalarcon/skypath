@@ -19,12 +19,16 @@ func TestDeadlineSetsContextDeadline(t *testing.T) {
 
 	before := time.Now()
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	after := time.Now()
 
 	if !has {
 		t.Fatal("request context has no deadline")
 	}
-	if remaining := deadline.Sub(before); remaining <= 0 || remaining > time.Minute {
-		t.Errorf("deadline is %s from now, want within (0, 1m]", remaining)
+	// The middleware reads the clock at some point between the two readings
+	// here, so the deadline lies one minute after that window.
+	earliest, latest := before.Add(time.Minute), after.Add(time.Minute)
+	if deadline.Before(earliest) || deadline.After(latest) {
+		t.Errorf("deadline = %s, want between %s and %s", deadline, earliest, latest)
 	}
 }
 
