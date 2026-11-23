@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,44 +16,49 @@ import (
 	// Embed the IANA time zone database so local flight times resolve the same
 	// way on every host, including minimal container images that ship none.
 	_ "time/tzdata"
-)
 
-const (
-	defaultPort     = "8080"
-	shutdownTimeout = 10 * time.Second
+	"github.com/luisalarcon/skypath/backend/internal/config"
 )
 
 func main() {
 	healthcheck := flag.Bool("healthcheck", false, "probe the running server's health endpoint and exit")
 	flag.Parse()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "invalid configuration:\n%v\n", err)
+		os.Exit(2)
 	}
 
 	if *healthcheck {
-		os.Exit(probe(port))
+		os.Exit(probe(cfg.Port))
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	if err := run(logger, port); err != nil {
+	logger := cfg.NewLogger(os.Stdout)
+	if err := run(logger, cfg); err != nil {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(logger *slog.Logger, port string) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", handleHealth)
+// run loads the schedule, serves until a stop signal arrives, then shuts down
+// gracefully. The schedule is loaded before the listener opens, so the
+// service never answers a search from a partial data set.
+func run(logger *slog.Logger, cfg config.Config) error {
+	handler, err := newHandler(cfg, logger)
+	if err != nil {
+		return err
+	}
 
 	srv := &http.Server{
-		Addr:              ":" + port,
-		Handler:           mux,
+		Addr:              cfg.Addr(),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		// The write timeout must outlast the request deadline, or a slow
+		// request would be cut off before it could report its own timeout.
+		WriteTimeout: cfg.RequestTimeout + 5*time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -76,21 +80,16 @@ func run(logger *slog.Logger, port string) error {
 	}
 
 	logger.Info("shutting down")
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)
 }
 
-func handleHealth(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
 // probe calls the local health endpoint and returns a process exit code. It
 // lets the container health check run without any extra tools in the image.
-func probe(port string) int {
+func probe(port int) int {
 	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%s/healthz", port))
+	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/healthz", port))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "healthcheck:", err)
 		return 1
