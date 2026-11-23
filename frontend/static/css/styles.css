@@ -690,6 +690,456 @@ main {
 }
 
 /* ---------------------------------------------------------------------------
+   Results
+   ------------------------------------------------------------------------ */
+
+.results {
+  margin-top: var(--space-10);
+}
+
+.results-head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.results-head__route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+  scroll-margin-top: var(--space-6);
+}
+
+.results-head__code {
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.results-head__arrow {
+  display: inline-flex;
+  color: var(--color-accent);
+}
+
+.results-head__date {
+  font-size: var(--text-md);
+}
+
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.tally__item {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.tally__item + .tally__item::before {
+  content: "·";
+  content: "·" / "";
+  margin-inline: var(--space-1);
+}
+
+.tally dd {
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.results-head__note {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.itineraries {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+/* Cards settle in one after another when results arrive. */
+.itinerary {
+  animation: card-in var(--duration-slow) var(--ease-out) both;
+}
+
+.itinerary:nth-child(2) { animation-delay: 50ms; }
+.itinerary:nth-child(3) { animation-delay: 100ms; }
+.itinerary:nth-child(4) { animation-delay: 150ms; }
+.itinerary:nth-child(n + 5) { animation-delay: 200ms; }
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Itinerary card
+   ------------------------------------------------------------------------ */
+
+.card {
+  container: card / inline-size;
+  padding: clamp(var(--space-4), 3vw, var(--space-6));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/*
+  Summary: on narrow cards the route comes first, with highlights and price
+  beneath it; on wide cards the price sits beside the route.
+*/
+.card__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "route route" "tags price";
+  align-items: center;
+  gap: var(--space-4) var(--space-6);
+}
+
+.tags {
+  grid-area: tags;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1.25rem;
+}
+
+.card__price {
+  grid-area: price;
+  justify-self: end;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Route: departure and arrival with a track between them, one dot per stop. */
+.route {
+  grid-area: route;
+  display: grid;
+  grid-template-columns: auto minmax(3rem, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-4);
+}
+
+.route__end {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.route__end--arr {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.route__time {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.route__code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: inherit;
+  gap: 0.375rem;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.route__end--arr .route__code {
+  justify-content: flex-end;
+}
+
+.route__track {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.route__duration {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.route__stops {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.route__line {
+  position: relative;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 2px;
+  margin-inline: 3px;
+  border-radius: 1px;
+  background: var(--color-rail);
+}
+
+.route__line::before,
+.route__line::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-rail);
+  transform: translateY(-50%);
+}
+
+.route__line::before { left: -3px; }
+.route__line::after { right: -3px; }
+
+.route__stop {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+/* "+1 day" and friends. Text carries the meaning; the pill only draws the eye. */
+.day-offset {
+  display: inline-block;
+  padding: 0 0.375rem;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.01em;
+  line-height: 1.125rem;
+  white-space: nowrap;
+}
+
+/*
+  Timeline: a two-column grid (local time, place) with the rail drawn in the
+  gap between them. Each row draws its own stretch of rail, so points, flights
+  and layovers join into one continuous line.
+*/
+.timeline {
+  --tl-time: 4.75rem;
+  --tl-gap: 2.25rem;
+  --tl-rail-x: calc(var(--tl-time) + var(--tl-gap) / 2);
+  --tl-node: 0.75rem;
+  /* Vertical centre of the first text line in a point row. */
+  --tl-node-y: 1.125rem;
+
+  margin-top: var(--space-5);
+  padding: var(--space-5) 0 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.tl-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--tl-time) minmax(0, 1fr);
+  column-gap: var(--tl-gap);
+}
+
+.tl-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--tl-rail-x) - 1px);
+  width: 2px;
+  background: var(--color-rail);
+}
+
+.tl-point {
+  padding-block: 0.375rem;
+}
+
+.tl-point::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--tl-node-y) - var(--tl-node) / 2);
+  left: calc(var(--tl-rail-x) - var(--tl-node) / 2);
+  width: var(--tl-node);
+  height: var(--tl-node);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+/* The journey's first departure and final arrival are solid, and the rail
+   starts and ends at them. */
+.leg:first-child .tl-point--dep::after,
+.leg:last-child .tl-point--arr::after {
+  background: var(--color-accent);
+}
+
+.leg:first-child .tl-point--dep::before {
+  top: var(--tl-node-y);
+}
+
+.leg:last-child .tl-point--arr::before {
+  bottom: auto;
+  height: var(--tl-node-y);
+}
+
+.tl-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tl-place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tl-place__main {
+  font-weight: var(--weight-medium);
+}
+
+.tl-code {
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+}
+
+.tl-place__detail {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.tl-flight {
+  padding-block: var(--space-2) var(--space-3);
+}
+
+.tl-flight__body {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.tl-flight__duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.tl-flight__duration .icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* Layovers: a dashed stretch of rail and a quiet note beside it. */
+.layover .tl-row {
+  padding-block: var(--space-2);
+}
+
+.layover .tl-row::before {
+  background: repeating-linear-gradient(to bottom, var(--color-rail) 0 3px, transparent 3px 7px);
+}
+
+.layover__text {
+  grid-column: 2;
+  justify-self: start;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.layover__duration {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.layover__kind {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1.25rem;
+}
+
+.layover--international .layover__kind {
+  border-color: color-mix(in oklch, var(--color-warning) 45%, transparent);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+@container card (min-width: 36rem) {
+  .card__summary {
+    grid-template-areas: "tags tags" "route price";
+  }
+
+  .card__summary:not(:has(.tags)) {
+    grid-template-areas: "route price";
+  }
+
+  .route {
+    max-width: 32rem;
+  }
+
+  .card__price {
+    font-size: var(--text-xl);
+  }
+
+  .timeline {
+    --tl-time: 5.5rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Error page
    ------------------------------------------------------------------------ */
 

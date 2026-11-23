@@ -282,3 +282,77 @@ func TestFieldErrorsAreWired(t *testing.T) {
 		t.Errorf("origin value = %q, want XXX", got)
 	}
 }
+
+func TestResultsState(t *testing.T) {
+	html := render(t, Search, resultsPage())
+	assertContains(t, html,
+		"<title>JFK to LAX · Mar 15, 2024 · SkyPath</title>",
+		`id="results-heading" tabindex="-1"`,
+		`New York <span class="results-head__code">(JFK)</span>`,
+		`Los Angeles <span class="results-head__code">(LAX)</span>`,
+		`<time datetime="2024-03-15">Friday, March 15, 2024</time>`,
+		`<dt>Itineraries</dt><dd>2</dd>`,
+		`<dt>Direct</dt><dd>1</dd>`,
+		`<dt>One stop</dt><dd>1</dd>`,
+		"Times are local to each airport.",
+		// Summary rows.
+		`<time class="route__time" datetime="2024-03-15T08:30:00-04:00">8:30 AM</time>`,
+		`<p class="card__price">$299.00</p>`,
+		`<p class="route__stops">1 stop · ORD</p>`,
+		`<li class="tag">Fastest</li>`,
+		`<li class="tag">Cheapest</li>`,
+		// Accessible names summarise each card.
+		`aria-label="8:30 AM JFK to 11:45 AM LAX, 6h 15m, Direct, $299.00, Fastest, Cheapest"`,
+		`aria-label="7:00 AM JFK to 11:30 AM LAX, 7h 30m, 1 stop via ORD, $414.00"`,
+		// Timeline.
+		"SP110 · SkyPath Airways · A319",
+		"SP120 · SkyPath Airways · A320",
+		`<time datetime="2024-03-15T08:30:00-05:00">8:30 AM</time>`,
+		"O&#39;Hare International · UTC-5",
+		`<span class="layover__duration">45m layover</span> in Chicago (ORD)`,
+		`<span class="layover__kind">Domestic connection</span>`,
+	)
+	assertNotContains(t, html, "Two stops", "day-offset", "No itineraries found")
+
+	if n := strings.Count(html, `<li class="itinerary"`); n != 2 {
+		t.Errorf("rendered %d itinerary cards, want 2", n)
+	}
+	var cards []tag
+	for _, tg := range parseTags(html) {
+		if tg.attrs["class"] == "itinerary" {
+			cards = append(cards, tg)
+		}
+	}
+	want := [][3]string{{"375", "29900", "0"}, {"450", "41400", "1"}}
+	for i, c := range cards {
+		got := [3]string{c.attrs["data-duration-minutes"], c.attrs["data-price-cents"], c.attrs["data-stops"]}
+		if got != want[i] {
+			t.Errorf("card %d data attributes = %v, want %v", i, got, want[i])
+		}
+	}
+	if got := tagByID(t, html, "results-heading").name; got != "h2" {
+		t.Errorf("results heading is <%s>, want <h2>", got)
+	}
+}
+
+func TestTwoStopResults(t *testing.T) {
+	html := render(t, Search, twoStopPage())
+	assertContains(t, html,
+		`<dt>Two stops</dt><dd>1</dd>`,
+		`<p class="route__stops">2 stops · DEN, LAX</p>`,
+		`<span class="route__code">NRT <span class="day-offset">&#43;2 days</span></span>`,
+		`<time datetime="2024-03-17T03:00:00&#43;09:00">3:00 AM</time> <span class="day-offset">&#43;2 days</span>`,
+		`<li class="layover layover--international">`,
+		`<span class="layover__kind">International connection</span>`,
+		`<span class="layover__duration">2h 45m layover</span> in Los Angeles (LAX)`,
+		"SP501 · SkyPath Airways · B777",
+		`aria-label="2:00 PM SFO to 3:00 AM NRT &#43;2 days, 21h, 2 stops via DEN, LAX, $1,137.00, Fastest, Cheapest"`,
+	)
+	assertNotContains(t, html, "<dt>Direct</dt>", "<dt>One stop</dt>")
+	if n := strings.Count(html, `<span class="route__stop">`); n != 2 {
+		t.Errorf("route shows %d stop dots, want 2", n)
+	}
+	if n := strings.Count(html, `<li class="leg">`); n != 3 {
+		t.Errorf("timeline shows %d flights, want 3", n)
+	}
+}
