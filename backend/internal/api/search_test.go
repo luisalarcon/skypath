@@ -322,6 +322,25 @@ func TestSearchErrorMapping(t *testing.T) {
 	}
 }
 
+func TestSearchAbandonedByClientIsNotAServerError(t *testing.T) {
+	f := newSearchFixture(t, 0, func(context.Context, flight.Query) ([]flight.Itinerary, error) {
+		return nil, fmt.Errorf("search: %w", context.Canceled)
+	})
+	rec := get(f.handler, "/api/v1/search?origin=JFK&destination=LAX&date=2024-03-15")
+
+	if rec.Code != 499 {
+		t.Errorf("status = %d, want 499", rec.Code)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("body = %q, want none: the client is gone", rec.Body)
+	}
+	for _, record := range f.logs() {
+		if record["level"] == "ERROR" || record["level"] == "WARN" {
+			t.Errorf("a client disconnect was logged at %v: %v", record["level"], record)
+		}
+	}
+}
+
 func TestSearchExceedingRequestTimeoutReturns503(t *testing.T) {
 	var sawDeadline bool
 	f := newSearchFixture(t, 20*time.Millisecond, func(ctx context.Context, _ flight.Query) ([]flight.Itinerary, error) {
