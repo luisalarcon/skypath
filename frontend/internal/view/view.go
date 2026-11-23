@@ -28,6 +28,12 @@ type Form struct {
 	MinDate     string // optional date picker bounds, YYYY-MM-DD
 	MaxDate     string
 	Errors      FieldErrors
+
+	// OriginName and DestinationName describe the airport each code resolves
+	// to, e.g. "New York · John F. Kennedy International". They are empty
+	// when the code is blank or not a known airport.
+	OriginName      string
+	DestinationName string
 }
 
 // FieldErrors holds one message per form field. An empty string means the
@@ -81,6 +87,7 @@ type Itinerary struct {
 	Stops      int
 	StopsLabel string   // "Direct", "1 stop", "2 stops"
 	Via        []string // connecting airport codes, e.g. ["ORD"]; empty when direct
+	Tags       []string // highlights within this result set: "Fastest", "Cheapest"
 
 	Duration        string // "7h 30m"
 	DurationMinutes int    // raw value, for client-side sorting
