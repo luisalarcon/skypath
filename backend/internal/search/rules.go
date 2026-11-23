@@ -37,3 +37,29 @@ func connectionKind(a, b flight.Flight) flight.ConnectionKind {
 	}
 	return flight.International
 }
+
+// minLayover is the shortest legal wait for a connection of the given kind.
+func minLayover(kind flight.ConnectionKind) time.Duration {
+	if kind == flight.Domestic {
+		return minDomesticLayover
+	}
+	return minInternationalLayover
+}
+
+// connect reports whether b can follow a in an itinerary and, if so, returns
+// the layover between them. b must leave from the very airport a lands at:
+// airports are matched on code, so arriving at LGA and leaving from JFK is
+// never a connection even though both serve New York. The wait is measured
+// between absolute instants, so it is correct whatever the two local clocks
+// read.
+func connect(a, b flight.Flight) (flight.Layover, bool) {
+	if a.Destination.Code != b.Origin.Code {
+		return flight.Layover{}, false
+	}
+	kind := connectionKind(a, b)
+	wait := b.Departure.Sub(a.Arrival)
+	if wait < minLayover(kind) || wait > maxLayover {
+		return flight.Layover{}, false
+	}
+	return flight.Layover{Airport: a.Destination, Duration: wait, Kind: kind}, true
+}
