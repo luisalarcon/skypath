@@ -66,6 +66,9 @@ func NewHandler(deps Dependencies) http.Handler {
 
 func (s *server) routes() []route {
 	return []route{
+		{"/api/v1/airports", s.handleAirports},
+		{"/api/v1/dataset", s.handleDataset},
 		{"/healthz", s.handleHealth},
+		{"/readyz", s.handleReady},
 	}
 }
