@@ -1,0 +1,11 @@
+# Build context for backend/Dockerfile is the repository root. Allow only what
+# the backend image needs and drop everything else.
+*
+
+!backend/
+!flights.json
+
+# Not needed to build or run the binary.
+**/*_test.go
+**/testdata
+backend/Dockerfile
