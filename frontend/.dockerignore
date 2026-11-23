@@ -1,0 +1,6 @@
+# Build context for frontend/Dockerfile is this directory. Templates and static
+# assets are embedded into the binary, so they must stay in the context.
+Dockerfile
+.dockerignore
+**/*_test.go
+**/testdata
