@@ -13,5 +13,7 @@
 //	(*Store).DeparturesFrom(code string, notBefore time.Time) []flight.Flight
 //	(*Store).Len() int // number of flights
 //
-// *Store satisfies search.FlightSource and api.AirportDirectory.
+// *Store satisfies search.FlightSource and api.AirportDirectory. The
+// compile-time check belongs in cmd/server, the only package that knows all
+// three, so that this package depends on neither consumer.
 package store
