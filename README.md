@@ -210,6 +210,29 @@ On a generated network of 25 airports and 300 flights, a search takes about 3 to
 9. **Minimum connection times per airport**, which is how real schedules work.
 10. **Authentication and rate limiting** for the API, as described under [Security](#security).
 
+## How it was built
+
+I built SkyPath with AI coding agents in Claude Code, using different models for different kinds of work and running independent parts in parallel. The [decision log](docs/decisions.md#how-the-project-is-built) records where I overruled the assistant and where it pushed back.
+
+1. **Plan before code (about an hour).** With Claude Fable 5.2: profile the schedule, write an independent prototype of the search to produce reference results, then write the design documents and the API contract. No application code was written until the design was settled.
+2. **Freeze the seams.** The domain types, the interfaces between packages, the OpenAPI contract and the frontend's view models were committed first, so parallel work could not drift apart.
+3. **Build in parallel (about 35 minutes).** Five agents worked at the same time, each in its own git worktree and branch and owning only its own packages. A sixth built the containers and CI while the documentation was being written.
+
+   | Part | Branch | Model |
+   |---|---|---|
+   | Data layer: loading, validation, in-memory store | `feat/backend-data` | Claude Opus |
+   | Search engine and connection rules | `feat/backend-search` | Claude Opus |
+   | HTTP API, middleware, configuration | `feat/backend-api` | Claude Sonnet |
+   | Frontend server and API client | `feat/frontend-server` | Claude Sonnet |
+   | Interface: templates, stylesheet, script | `feat/frontend-ui` | Claude Opus |
+   | Dockerfiles, Compose, Makefile, CI | `chore/infrastructure` | Claude Sonnet |
+
+   Opus took the parts where correctness or design judgement mattered most; Sonnet took the parts that follow a written contract closely.
+4. **Integrate and verify.** Each branch was reviewed against its specification and merged by pull request only with CI green. The entry points were then wired together and the whole backend was tested through HTTP against the reference results. Review caught real defects, among them airport-code normalisation that accepted non-ASCII letters, and a client disconnect being logged as a server error.
+5. **Final review in parallel.** Two more agents ran at once: one checked every requirement against the code (Claude Opus), the other followed this README from a fresh clone (Claude Sonnet).
+
+From first reading the requirements to the merged README took about two hours; the final review and the deployment took about half an hour more. Because the streams committed at the same time, many commits in the history are minutes or seconds apart. Pull requests 1 to 10 show the order in which the parts landed.
+
 ## Project layout
 
 ```
