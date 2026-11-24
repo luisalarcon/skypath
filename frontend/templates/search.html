@@ -30,7 +30,36 @@
     </div>
   </main>
 {{template "site-footer"}}
+
+  {{/* Announces search outcomes to assistive technology; filled by script. */}}
+  <div class="visually-hidden" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  {{/* Placeholder cards the script shows while a search is in flight. */}}
+  <template id="results-skeleton">
+    <div class="skeleton" aria-hidden="true">
+      <div class="skeleton__head">
+        <span class="sk sk--title"></span>
+        <span class="sk sk--subtitle"></span>
+        <span class="sk sk--line"></span>
+      </div>
+      <div class="skeleton-card">{{template "skeleton-card-body"}}</div>
+      <div class="skeleton-card">{{template "skeleton-card-body"}}</div>
+      <div class="skeleton-card">{{template "skeleton-card-body"}}</div>
+    </div>
+  </template>
+
   <script src="/static/js/app.js?v={{.AssetVersion}}" defer></script>
 </body>
 </html>
 {{end}}
+
+{{define "skeleton-card-body"}}
+        <div class="skeleton-card__summary">
+          <span class="sk sk--time"></span>
+          <span class="sk sk--track"></span>
+          <span class="sk sk--time"></span>
+          <span class="sk sk--price"></span>
+        </div>
+        <span class="sk sk--line"></span>
+        <span class="sk sk--line sk--short"></span>
+{{- end}}

@@ -6,7 +6,15 @@
 //   - browser-side validation with the API's wording, shown as the user
 //     leaves a field and on submit;
 //   - upper-casing of airport codes and a live hint naming the airport;
-//   - a control that swaps origin and destination.
+//   - a control that swaps origin and destination;
+//   - searches without a full page load: the script fetches the same URL the
+//     form would have navigated to, takes the notice area, the results area
+//     and the field messages from the returned page and swaps them in, and
+//     keeps the address bar and history in step.
+//
+// Because every response is the ordinary server-rendered page there is one
+// rendering path. Whenever something unexpected happens the script falls
+// back to a normal navigation and lets the server render the outcome.
 //
 // The root element gets the "is-enhanced" class once the script has taken
 // over; the stylesheet only reveals script-driven controls under it.
@@ -203,6 +211,225 @@
     });
   }
 
+  // --- In-place search ----------------------------------------------------
+
+  // Everything below needs these; without them the form simply navigates.
+  const canFetch =
+    typeof window.fetch === "function" &&
+    typeof window.AbortController === "function" &&
+    typeof window.DOMParser === "function" &&
+    typeof window.URLSearchParams === "function" &&
+    typeof window.FormData === "function" &&
+    !!(window.history && typeof history.pushState === "function");
+
+  // Elements swapped wholesale from a fetched page. Each exists exactly once
+  // in every state of the search page.
+  const REGION_IDS = ["notice", "results", "origin-error", "destination-error", "date-error"];
+
+  const submitLabel = form.querySelector("[data-loading-label]");
+  const idleLabel = submitLabel ? submitLabel.textContent : "";
+  const announcer = document.getElementById("announcer");
+  const skeleton = document.getElementById("results-skeleton");
+
+  // The search being fetched, so a newer one can abort it.
+  let inFlight = null;
+  // Path and query of the page now shown. History entries that differ only
+  // by fragment (the skip link) must not trigger a search.
+  let shownKey = location.pathname + location.search;
+
+  function announce(text) {
+    if (!announcer) {
+      return;
+    }
+    // Clear first so the same message twice in a row is still announced.
+    announcer.textContent = "";
+    window.setTimeout(() => {
+      announcer.textContent = text;
+    }, 100);
+  }
+
+  function setLoading(loading) {
+    form.classList.toggle("is-loading", loading);
+    if (submitLabel) {
+      submitLabel.textContent = loading ? submitLabel.dataset.loadingLabel || idleLabel : idleLabel;
+    }
+    const results = document.getElementById("results");
+    if (!results) {
+      return;
+    }
+    if (loading) {
+      results.setAttribute("aria-busy", "true");
+      if (skeleton && skeleton.content) {
+        results.replaceChildren(skeleton.content.cloneNode(true));
+      }
+      const notice = document.getElementById("notice");
+      if (notice) {
+        notice.replaceChildren();
+      }
+    } else {
+      results.removeAttribute("aria-busy");
+    }
+  }
+
+  /** The URL the form would navigate to. */
+  function formURL() {
+    const url = new URL(form.getAttribute("action") || "/", location.href);
+    url.search = new URLSearchParams(new FormData(form)).toString();
+    return url.href;
+  }
+
+  /**
+   * Swaps the regions of a fetched page into this one. With restoreForm the
+   * inputs also take the fetched page's values: for back and forward, and
+   * for links that start a different search.
+   */
+  function applyPage(page, restoreForm) {
+    for (const id of REGION_IDS) {
+      const current = document.getElementById(id);
+      const next = page.getElementById(id);
+      if (current && next) {
+        current.replaceWith(document.importNode(next, true));
+      }
+    }
+    for (const name of Object.keys(fields)) {
+      const next = page.getElementById(name);
+      if (!next) {
+        continue;
+      }
+      if (restoreForm) {
+        fields[name].value = next.getAttribute("value") || "";
+        dirty.delete(name);
+        updateHint(name);
+      }
+      if (next.getAttribute("aria-invalid") === "true") {
+        fields[name].setAttribute("aria-invalid", "true");
+        touched.add(name);
+      } else {
+        fields[name].removeAttribute("aria-invalid");
+        touched.delete(name);
+      }
+    }
+    if (page.title) {
+      document.title = page.title;
+    }
+  }
+
+  /** Moves focus to what changed and announces it. */
+  function revealOutcome() {
+    const invalid = Object.keys(fields).find((name) => fields[name].getAttribute("aria-invalid") === "true");
+    if (invalid) {
+      // Its message is read out with it.
+      fields[invalid].focus();
+      return;
+    }
+    const heading = document.getElementById("results-heading");
+    if (heading) {
+      heading.focus();
+      const summary = document.querySelector("#results [data-count]");
+      if (summary) {
+        const count = Number(summary.getAttribute("data-count"));
+        announce(count === 1 ? "1 itinerary found" : `${count} itineraries found`);
+      } else {
+        announce(heading.textContent.trim());
+      }
+      return;
+    }
+    const notice = document.getElementById("notice");
+    const title = notice && notice.querySelector(".notice__title");
+    if (title) {
+      notice.focus();
+      announce(title.textContent.trim());
+    }
+  }
+
+  /**
+   * Fetches a search page and swaps it in. push adds a history entry;
+   * restoreForm copies the fetched page's values into the inputs.
+   */
+  async function search(url, { push, restoreForm }) {
+    if (inFlight) {
+      inFlight.abort();
+    }
+    const controller = new AbortController();
+    inFlight = controller;
+    setLoading(true);
+
+    let page;
+    let finalURL = url;
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: "text/html" },
+        credentials: "same-origin",
+      });
+      const type = response.headers.get("Content-Type") || "";
+      if (!type.includes("text/html")) {
+        throw new Error(`unexpected content type ${type}`);
+      }
+      finalURL = response.url || url;
+      page = new DOMParser().parseFromString(await response.text(), "text/html");
+      // Error pages (404, 500) are not the search page: show them for real.
+      if (!REGION_IDS.every((id) => page.getElementById(id))) {
+        throw new Error("response is not the search page");
+      }
+    } catch {
+      if (!controller.signal.aborted) {
+        // Network failure or an unexpected response: let the server render
+        // whatever went wrong as a full page.
+        window.location.assign(url);
+      }
+      return;
+    }
+    if (controller.signal.aborted) {
+      // Superseded by a newer search, or the page is being hidden.
+      return;
+    }
+    inFlight = null;
+
+    applyPage(page, restoreForm);
+    setLoading(false);
+    if (push) {
+      history.pushState({ skypath: true }, "", finalURL);
+    }
+    shownKey = location.pathname + location.search;
+    revealOutcome();
+  }
+
+  if (canFetch) {
+    // Back and forward re-run the search for the restored address, so the
+    // page always matches the URL.
+    window.addEventListener("popstate", () => {
+      if (location.pathname + location.search !== shownKey) {
+        search(location.href, { push: false, restoreForm: true });
+      }
+    });
+
+    // Links that start a search (the empty state's suggestion) stay in the
+    // page too. Modified clicks keep their usual meaning.
+    document.addEventListener("click", (event) => {
+      const link = event.target instanceof Element ? event.target.closest("a[data-search-link]") : null;
+      const modified = event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+      if (link && !modified && !event.defaultPrevented) {
+        event.preventDefault();
+        search(link.href, { push: true, restoreForm: true });
+      }
+    });
+
+    // A page restored from the back/forward cache may have been frozen
+    // mid-search, for example when a failed fetch fell back to navigation.
+    // Never leave it stuck: load the results for the address shown.
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted && form.classList.contains("is-loading")) {
+        search(location.href, { push: false, restoreForm: true });
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      if (inFlight) {
+        inFlight.abort();
+      }
+    });
+  }
+
   // --- Submit --------------------------------------------------------------
 
   form.addEventListener("submit", (event) => {
@@ -212,6 +439,11 @@
       // The field's message is linked with aria-describedby, so moving focus
       // there is enough for it to be read out.
       fields[invalid[0]].focus();
+      return;
+    }
+    if (canFetch) {
+      event.preventDefault();
+      search(formURL(), { push: true, restoreForm: false });
     }
   });
 })();

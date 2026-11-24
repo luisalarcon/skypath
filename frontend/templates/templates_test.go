@@ -453,3 +453,21 @@ func TestEscapesHostileInput(t *testing.T) {
 		t.Errorf("origin value is not escaped as text: %q", got)
 	}
 }
+
+func TestEnhancementHooks(t *testing.T) {
+	html := render(t, Search, initialPage())
+	assertContains(t, html,
+		`<div class="visually-hidden" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>`,
+		`<template id="results-skeleton">`,
+		`data-loading-label="Searching…"`,
+		`<div class="notices" id="notice" tabindex="-1">`,
+	)
+	if n := strings.Count(html, `class="skeleton-card"`); n != 3 {
+		t.Errorf("skeleton has %d cards, want 3", n)
+	}
+	// Skeleton markup lives only inside the inert template element.
+	start, end := strings.Index(html, "<template"), strings.Index(html, "</template>")
+	if first := strings.Index(html, "skeleton-card"); first < start || first > end {
+		t.Errorf("skeleton markup found outside its template")
+	}
+}
