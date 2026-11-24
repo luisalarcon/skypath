@@ -1,0 +1,146 @@
+{{/*
+  Search results; data is view.Page with a non-nil Results.
+*/}}
+
+{{define "results"}}
+{{- if .Results.Itineraries}}{{template "results-list" .Results}}{{else}}{{template "results-empty" .}}{{end}}
+{{- end}}
+
+{{/* The heading and cards; data is view.Results with itineraries. */}}
+{{define "results-list"}}
+<section class="results-body" aria-labelledby="results-heading" data-count="{{.Count}}">
+  <header class="results-head">
+    <h2 class="results-head__route" id="results-heading" tabindex="-1">
+      <span class="results-head__place">{{.Origin.City}} <span class="results-head__code">({{.Origin.Code}})</span></span>
+      <span class="results-head__arrow">{{template "icon-arrow"}}<span class="visually-hidden">to</span></span>
+      <span class="results-head__place">{{.Destination.City}} <span class="results-head__code">({{.Destination.Code}})</span></span>
+    </h2>
+    <p class="results-head__date"><time datetime="{{.DateISO}}">{{.Date}}</time></p>
+    <dl class="tally">
+      <div class="tally__item tally__item--total"><dt>Itineraries</dt><dd>{{.Count}}</dd></div>
+      {{- if .Direct}}<div class="tally__item"><dt>Direct</dt><dd>{{.Direct}}</dd></div>{{end}}
+      {{- if .OneStop}}<div class="tally__item"><dt>One stop</dt><dd>{{.OneStop}}</dd></div>{{end}}
+      {{- if .TwoStop}}<div class="tally__item"><dt>Two stops</dt><dd>{{.TwoStop}}</dd></div>{{end}}
+    </dl>
+    <p class="results-head__note">Sorted by total travel time. Times are local to each airport.</p>
+  </header>
+
+  <ol class="itineraries">
+    {{- range .Itineraries}}
+    {{template "itinerary" .}}
+    {{- end}}
+  </ol>
+</section>
+{{end}}
+
+{{/*
+  A completed search that found nothing; data is view.Page. When the schedule
+  coverage is known, it offers the same route on the first covered date.
+*/}}
+{{define "results-empty"}}
+{{- with .Results}}
+<section class="empty" aria-labelledby="results-heading">
+  {{template "art-route"}}
+  <h2 class="empty__title" id="results-heading" tabindex="-1">No itineraries found</h2>
+  <p class="empty__text">
+    Nothing connects {{.Origin.City}} ({{.Origin.Code}}) to {{.Destination.City}} ({{.Destination.Code}})
+    on <time datetime="{{.DateISO}}">{{.Date}}</time>.
+  </p>
+  {{- with $.Dataset}}
+  <p class="empty__text">The schedule covers {{.FirstDate}} to {{.LastDate}}.</p>
+  <p class="empty__action">
+    <a class="button button--secondary" data-search-link
+      href="/?origin={{$.Results.Origin.Code}}&amp;destination={{$.Results.Destination.Code}}&amp;date={{.FirstDateISO}}">
+      Search {{.FirstDate}} instead
+    </a>
+  </p>
+  {{- end}}
+</section>
+{{- end}}
+{{end}}
+
+{{/*
+  One itinerary; data is view.Itinerary. The data- attributes carry raw
+  values so the list can be re-sorted in the browser without parsing text.
+*/}}
+{{define "itinerary"}}
+<li class="itinerary" data-duration-minutes="{{.DurationMinutes}}" data-price-cents="{{.PriceCents}}" data-stops="{{.Stops}}">
+  <article class="card" aria-label="{{.Departure.Time}} {{.Departure.Airport.Code}} to {{.Arrival.Time}} {{.Arrival.Airport.Code}}{{with .DayOffset}} {{.}}{{end}}, {{.Duration}}, {{.StopsLabel}}{{with .Via}} via {{range $i, $code := .}}{{if $i}}, {{end}}{{$code}}{{end}}{{end}}, {{.Price}}{{range .Tags}}, {{.}}{{end}}">
+    <div class="card__summary">
+      {{- with .Tags}}
+      <ul class="tags" aria-label="Highlights">
+        {{- range .}}<li class="tag">{{.}}</li>{{end -}}
+      </ul>
+      {{- end}}
+
+      <div class="route">
+        <p class="route__end route__end--dep">
+          <time class="route__time" datetime="{{.Departure.ISO}}">{{.Departure.Time}}</time>
+          <span class="route__code">{{.Departure.Airport.Code}}</span>
+        </p>
+        <div class="route__track">
+          <p class="route__duration">{{.Duration}}</p>
+          <span class="route__line" aria-hidden="true">
+            {{- range .Via}}<span class="route__stop"></span>{{end -}}
+          </span>
+          <p class="route__stops">{{.StopsLabel}}{{with .Via}} · {{range $i, $code := .}}{{if $i}}, {{end}}{{$code}}{{end}}{{end}}</p>
+        </div>
+        <p class="route__end route__end--arr">
+          <time class="route__time" datetime="{{.Arrival.ISO}}">{{.Arrival.Time}}</time>
+          <span class="route__code">{{.Arrival.Airport.Code}}{{with .DayOffset}} <span class="day-offset">{{.}}</span>{{end}}</span>
+        </p>
+      </div>
+
+      <p class="card__price">{{.Price}}</p>
+    </div>
+
+    <ol class="timeline" aria-label="Flights">
+      {{- range .Segments}}
+      {{template "leg" .}}
+      {{- end}}
+    </ol>
+  </article>
+</li>
+{{end}}
+
+{{/*
+  One flight and the connection after it; data is view.Segment. The rail
+  (dots and lines) is drawn by the stylesheet.
+*/}}
+{{define "leg"}}
+<li class="leg">
+  <div class="tl-row tl-point tl-point--dep">
+    <p class="tl-time"><time datetime="{{.Departure.ISO}}">{{.Departure.Time}}</time></p>
+    <p class="tl-place">
+      <span class="tl-place__main"><span class="tl-code">{{.Departure.Airport.Code}}</span> {{.Departure.Airport.City}}</span>
+      <span class="tl-place__detail">{{.Departure.Airport.Name}} · {{.Departure.UTCOffset}}</span>
+    </p>
+  </div>
+  <div class="tl-row tl-flight">
+    <div class="tl-flight__body">
+      <p class="tl-flight__duration">{{template "icon-clock"}}<span class="visually-hidden">Flight time</span> {{.Duration}}</p>
+      <p class="tl-flight__meta">{{.FlightNumber}} · {{.Airline}} · {{.Aircraft}}</p>
+    </div>
+  </div>
+  <div class="tl-row tl-point tl-point--arr">
+    <p class="tl-time">
+      <time datetime="{{.Arrival.ISO}}">{{.Arrival.Time}}</time>
+      {{- with .DayOffset}} <span class="day-offset">{{.}}</span>{{end}}
+    </p>
+    <p class="tl-place">
+      <span class="tl-place__main"><span class="tl-code">{{.Arrival.Airport.Code}}</span> {{.Arrival.Airport.City}}</span>
+      <span class="tl-place__detail">{{.Arrival.Airport.Name}} · {{.Arrival.UTCOffset}}</span>
+    </p>
+  </div>
+</li>
+{{- with .Layover}}
+<li class="layover layover--{{.Kind}}">
+  <div class="tl-row">
+    <p class="layover__text">
+      <span class="layover__duration">{{.Duration}} layover</span> <span class="layover__where">in {{.Airport.City}} ({{.Airport.Code}})</span>
+      <span class="layover__kind">{{.Label}}</span>
+    </p>
+  </div>
+</li>
+{{- end}}
+{{end}}

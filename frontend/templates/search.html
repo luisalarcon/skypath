@@ -1,17 +1,65 @@
 {{define "search"}}<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Title}}</title>
-  <link rel="stylesheet" href="/static/css/styles.css?v={{.AssetVersion}}">
+{{template "head" .}}
 </head>
 <body>
-  <main>
-    <h1>SkyPath</h1>
-    <p>Flight connection search.</p>
+{{template "site-header"}}
+  <main id="main" class="shell" tabindex="-1">
+    <section class="search" aria-labelledby="search-title">
+      <h1 id="search-title" class="search__title">Find a flight connection</h1>
+      <div class="search__panel">
+        {{template "search-form" .}}
+      </div>
+    </section>
+
+    {{/*
+      The notice area and the results area are always present, so the script
+      can swap their contents from a fetched page; see static/js/app.js.
+    */}}
+    <div class="notices" id="notice" tabindex="-1">
+      {{- with .Notice}}{{template "notice" .}}{{end -}}
+    </div>
+
+    <div class="results" id="results">
+      {{- if .Results}}{{template "results" .}}
+      {{- else if .Form.Errors.Any}}
+      {{- else if .Notice}}
+      {{- else}}{{template "intro" .}}
+      {{- end}}
+    </div>
   </main>
+{{template "site-footer"}}
+
+  {{/* Announces search outcomes to assistive technology; filled by script. */}}
+  <div class="visually-hidden" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  {{/* Placeholder cards the script shows while a search is in flight. */}}
+  <template id="results-skeleton">
+    <div class="skeleton" aria-hidden="true">
+      <div class="skeleton__head">
+        <span class="sk sk--title"></span>
+        <span class="sk sk--subtitle"></span>
+        <span class="sk sk--line"></span>
+      </div>
+      <div class="skeleton-card">{{template "skeleton-card-body"}}</div>
+      <div class="skeleton-card">{{template "skeleton-card-body"}}</div>
+      <div class="skeleton-card">{{template "skeleton-card-body"}}</div>
+    </div>
+  </template>
+
   <script src="/static/js/app.js?v={{.AssetVersion}}" defer></script>
 </body>
 </html>
 {{end}}
+
+{{define "skeleton-card-body"}}
+        <div class="skeleton-card__summary">
+          <span class="sk sk--time"></span>
+          <span class="sk sk--track"></span>
+          <span class="sk sk--time"></span>
+          <span class="sk sk--price"></span>
+        </div>
+        <span class="sk sk--line"></span>
+        <span class="sk sk--line sk--short"></span>
+{{- end}}

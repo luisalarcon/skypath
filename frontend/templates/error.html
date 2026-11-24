@@ -1,17 +1,19 @@
 {{define "error"}}<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Title}}</title>
-  <link rel="stylesheet" href="/static/css/styles.css?v={{.AssetVersion}}">
+{{template "head" .}}
 </head>
 <body>
-  <main>
-    <h1>{{.Heading}}</h1>
-    <p>{{.Message}}</p>
-    <p><a href="/">Back to search</a></p>
+{{template "site-header"}}
+  <main id="main" class="shell error-page" tabindex="-1">
+    {{with .Status}}<p class="error-page__status">Error {{.}}</p>{{end}}
+    <h1 class="error-page__heading">{{.Heading}}</h1>
+    {{with .Message}}<p class="error-page__message">{{.}}</p>{{end}}
+    <p class="error-page__action">
+      <a class="button button--primary" href="/">Back to search</a>
+    </p>
   </main>
+{{template "site-footer"}}
 </body>
 </html>
 {{end}}

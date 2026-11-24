@@ -1,7 +1,10 @@
 // Package templates holds the HTML templates and renders them. Templates are
 // embedded in the binary, so the service has no files to ship alongside it.
 //
-// Templates receive values from the view package and nothing else.
+// Templates receive values from the view package and nothing else. Each page
+// file defines one named page; the remaining files define the partials the
+// pages share (layout.html, icons.html and the search page's parts). All of
+// them are parsed into a single set, so any page can use any partial.
 package templates
 
 import (
