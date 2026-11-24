@@ -132,7 +132,31 @@ The schedule has 46 flight pairs exactly 45 minutes apart, 103 at 90 and 35 at 3
 
 **Cost.** One extra hop per search, on a local network.
 
-## 13. Development process: public from the first commit, atomic history
+## 13. Local times that do not exist are rejected
+
+**Context.** Raised during the build of the loader, not in the original design. A local time inside a daylight-saving gap, such as 02:30 on the night clocks go forward, never happens in that zone. Go's parser accepts it and silently moves it to a nearby instant.
+
+**Decision.** The loader rejects the record, with a reason naming the zone.
+
+**Why.** Moving the time is a guess, and entry 5 already settled that the loader does not guess. No record in the current schedule is affected.
+
+## 14. A client that disconnects is not a server error
+
+**Context.** Found while reviewing the API. A search cancelled because the client went away was answered with a 500 and logged as an error.
+
+**Decision.** It is logged at info and recorded as status 499 in the access log. A deadline that expires is different: that is the server's own limit, and still answers 503.
+
+**Why.** Error-level logs should mean something failed on the server. This did not.
+
+## 15. Templates decide nothing
+
+**Context.** The first version of the interface showed "Itineraries 27 · Direct 3", because a template cannot pluralise without logic, and always offered to repeat an empty search on the first covered date, even when that was the date just searched.
+
+**Decision.** The handler supplies the wording and decides whether there is a link to offer. Templates loop and show what they are given.
+
+**Why.** Logic in Go is unit-tested; logic in a template is not.
+
+## 16. Development process: public from the first commit, atomic history
 
 **Decision.** The repository is public from its first push. Commits are atomic, each building and passing on its own, and history is never squashed. Work lands through branches merged with merge commits.
 
