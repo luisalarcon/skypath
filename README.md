@@ -20,11 +20,20 @@ docker-compose up
 | | URL |
 |---|---|
 | Web application | http://localhost:3000 |
-| API | http://localhost:8080 |
+| API | `http://localhost:8080`, for example [`/readyz`](http://localhost:8080/readyz) |
 
 `docker compose up` works too. If a port is taken: `FRONTEND_PORT=3001 BACKEND_PORT=8081 docker-compose up`.
 
 The schedule covers departures on 2024-03-15 and 2024-03-16, and the date picker defaults to the first of them.
+
+## Live demo
+
+| | URL |
+|---|---|
+| Web application | https://skypath-4bl8.onrender.com |
+| API | [`https://skypath-api-qmx4.onrender.com/readyz`](https://skypath-api-qmx4.onrender.com/readyz) |
+
+The same two containers, unchanged, run on Render's free plan. Free services stop after about 15 minutes without traffic, so the first visit after a quiet spell can take about a minute while the page wakes, and the first search up to another minute while the API wakes. After that, responses are immediate. The frontend there allows 60 seconds for a call to the API (`BACKEND_TIMEOUT=60s`), so a cold start shows as a slow search rather than an error.
 
 ## Try these searches
 
@@ -144,6 +153,28 @@ Where the requirements left room, these readings were chosen:
 - **The two services share no code.** Each has its own small middleware. The contract and its examples keep them in step instead.
 - **A stopped backend can show as "took too long" under Docker.** Docker's internal DNS takes four to five seconds to report that a stopped service's name no longer exists, about as long as the frontend waits for the API (`BACKEND_TIMEOUT`, 5s). Whichever finishes first decides whether the page says "Search is temporarily unavailable" (502) or "The search took too long" (504). Either way the search stays filled in for a retry.
 
+## Security
+
+SkyPath serves public, read-only schedule data and stores nothing about its users. Security work therefore went into handling input safely and hardening the services, not into access control. **The API has no authentication and no rate limiting.**
+
+**In place**
+
+- Every input is validated before it is used: airport codes must be three letters and exist in the schedule, and dates must be ISO dates. Anything else is a 400 that names the field.
+- An inbound `X-Request-ID` is accepted only if it is 1 to 64 letters, digits, `.`, `_` or `-`, so a client cannot write arbitrary text into the logs.
+- Error responses never contain internal details. The cause is logged under the request ID.
+- Explicit server timeouts for headers, reads, writes and idle connections, a deadline on every request, and recovery from panics.
+- The API sends `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`, and no CORS headers, so scripts on other sites cannot read it from a browser. The web application adds a strict content security policy (no inline script or style), `X-Frame-Options: DENY` and a referrer policy, and renders all input through `html/template`.
+- Containers run as an unprivileged user on minimal images. There are no secrets in the code or configuration, and no third-party dependencies.
+
+**Not covered, and what production would add**
+
+| Gap | Next step |
+|---|---|
+| No authentication: anyone who can reach the API can search | Keep the API on a private network behind the frontend; issue API keys or OAuth tokens to any direct clients |
+| No rate limiting: one client can send unlimited searches | Per-client limits at the edge (load balancer, gateway or CDN), or a token-bucket middleware in the API |
+| No vulnerability scanning in CI | `govulncheck` for the Go toolchain and standard library, and an image scanner for the base images |
+| TLS is left to the host | Fine behind a managed platform; terminate TLS at a proxy anywhere else |
+
 ## Testing
 
 ```sh
@@ -164,7 +195,7 @@ The reference results were produced by a separate implementation of the rules wr
 
 CI runs formatting, `go vet`, `staticcheck`, tests with the race detector, then builds the containers and searches through them.
 
-A search over a generated network of 25 airports and 300 flights takes about 3.4 µs and 4 allocations.
+On a generated network of 25 airports and 300 flights, a search takes about 3 to 4 µs and 4 allocations, averaged over every route in the network (about 1.7 itineraries per search).
 
 ## With more time
 
@@ -177,6 +208,30 @@ A search over a generated network of 25 airports and 300 flights takes about 3.4
 7. **Result caching** keyed by route and date, valid until the schedule changes.
 8. **Browser-level tests** of the script, which is currently verified by hand.
 9. **Minimum connection times per airport**, which is how real schedules work.
+10. **Authentication and rate limiting** for the API, as described under [Security](#security).
+
+## How it was built
+
+I built SkyPath with AI coding agents in Claude Code, using different models for different kinds of work and running independent parts in parallel. The [decision log](docs/decisions.md#how-the-project-is-built) records where I overruled the assistant and where it pushed back.
+
+1. **Plan before code (about an hour).** With Claude Fable 5.2: profile the schedule, write an independent prototype of the search to produce reference results, then write the design documents and the API contract. No application code was written until the design was settled.
+2. **Freeze the seams.** The domain types, the interfaces between packages, the OpenAPI contract and the frontend's view models were committed first, so parallel work could not drift apart.
+3. **Build in parallel (about 35 minutes).** Five agents worked at the same time, each in its own git worktree and branch and owning only its own packages. A sixth built the containers and CI while the documentation was being written.
+
+   | Part | Branch | Model |
+   |---|---|---|
+   | Data layer: loading, validation, in-memory store | `feat/backend-data` | Claude Opus |
+   | Search engine and connection rules | `feat/backend-search` | Claude Opus |
+   | HTTP API, middleware, configuration | `feat/backend-api` | Claude Sonnet |
+   | Frontend server and API client | `feat/frontend-server` | Claude Sonnet |
+   | Interface: templates, stylesheet, script | `feat/frontend-ui` | Claude Opus |
+   | Dockerfiles, Compose, Makefile, CI | `chore/infrastructure` | Claude Sonnet |
+
+   Opus took the parts where correctness or design judgement mattered most; Sonnet took the parts that follow a written contract closely.
+4. **Integrate and verify.** Each branch was reviewed against its specification and merged by pull request only with CI green. The entry points were then wired together and the whole backend was tested through HTTP against the reference results. Review caught real defects, among them airport-code normalisation that accepted non-ASCII letters, and a client disconnect being logged as a server error.
+5. **Final review in parallel.** Two more agents ran at once: one checked every requirement against the code (Claude Opus), the other followed this README from a fresh clone (Claude Sonnet).
+
+**Total time: about 2 hours 30 minutes**, from first reading the requirements to the deployed demo: about an hour of planning, about an hour of building and integrating, and about half an hour of final review and deployment. Because the streams committed at the same time, many commits in the history are minutes or seconds apart. Pull requests 1 to 10 show the order in which the parts landed.
 
 ## Project layout
 

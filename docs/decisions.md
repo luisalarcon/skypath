@@ -161,3 +161,23 @@ The schedule has 46 flight pairs exactly 45 minutes apart, 103 at 90 and 35 at 3
 **Decision.** The repository is public from its first push. Commits are atomic, each building and passing on its own, and history is never squashed. Work lands through branches merged with merge commits.
 
 **Why.** The history is part of the documentation: it shows the order in which the system was built and why each step was taken.
+
+## 17. A live demo on a free plan
+
+**Context.** Local Docker is the supported way to run SkyPath. A hosted copy lets someone try it without cloning anything.
+
+**Decision.** Deploy both containers, unchanged, to Render's free plan, built straight from the public repository. The only setting that differs from local is the frontend's `BACKEND_TIMEOUT`, raised to 60 seconds.
+
+**Why.** It shows the images run on a real host with nothing but environment variables, at no cost. The longer timeout exists because free services sleep when idle: without it, the first search after a quiet spell would fail while the API wakes, instead of simply being slow.
+
+**Cost.** The first request after about 15 idle minutes takes up to a minute. The API has its own public URL; on a host with private networking it would be reachable only from the frontend.
+
+## 18. Security scope: hardening, not access control
+
+**Context.** The schedule is public and read-only, and there are no user accounts or personal data.
+
+**Decision.** Validate every input strictly, bound everything a client controls, keep internal details out of responses, and harden the containers and response headers. Do not build authentication or rate limiting.
+
+**Why.** There is nothing behind a login to protect. The remaining risk is a client using up capacity, which is better handled at the edge than in each service.
+
+**Cost.** Anyone who can reach the API can query it as often as they like. The README's security section lists what a production deployment would add.

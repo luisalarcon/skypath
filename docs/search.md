@@ -25,7 +25,7 @@ The zone rules come from the IANA time zone database, which is compiled into the
 
 A fixed table of offsets would get at least one of these wrong.
 
-**Known limit.** A local time inside a daylight-saving gap does not exist, and the loader rejects the record. A local time inside an overlap occurs twice; the first occurrence is used. No time in the current schedule is affected by either.
+**Known limit.** A local time inside a daylight-saving gap does not exist, and the loader rejects the record. A local time inside an overlap occurs twice and is accepted; which of the two instants Go's parser picks depends on the zone (the earlier one in New York, the later one in Paris or Sydney). Rejecting such a time, as the loader does for a gap, is the consistent next step. No time in the current schedule is affected by either.
 
 ## Connection rules
 
