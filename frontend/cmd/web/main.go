@@ -3,9 +3,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -16,49 +14,51 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/luisalarcon/skypath/frontend/internal/view"
-	"github.com/luisalarcon/skypath/frontend/static"
-	"github.com/luisalarcon/skypath/frontend/templates"
-)
-
-const (
-	defaultPort     = "3000"
-	shutdownTimeout = 10 * time.Second
+	"github.com/luisalarcon/skypath/frontend/internal/client"
+	"github.com/luisalarcon/skypath/frontend/internal/config"
+	"github.com/luisalarcon/skypath/frontend/internal/web"
 )
 
 func main() {
 	healthcheck := flag.Bool("healthcheck", false, "probe the running server's health endpoint and exit")
 	flag.Parse()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "invalid configuration:\n%v\n", err)
+		os.Exit(2)
 	}
 
 	if *healthcheck {
-		os.Exit(probe(port))
+		os.Exit(probe(cfg.Port))
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	if err := run(logger, port); err != nil {
+	logger := cfg.Logger(os.Stdout)
+	if err := run(logger, cfg); err != nil {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(logger *slog.Logger, port string) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", handleHealth)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static.FS())))
-	mux.HandleFunc("GET /{$}", handleHome(logger))
+// run serves until a stop signal arrives, then shuts down gracefully. The
+// frontend holds no data of its own, so it can start before the API is
+// reachable; until then searches show the "temporarily unavailable" notice.
+func run(logger *slog.Logger, cfg config.Config) error {
+	api := client.New(cfg.BackendURL, &http.Client{Timeout: cfg.BackendTimeout})
 
 	srv := &http.Server{
-		Addr:              ":" + port,
-		Handler:           mux,
+		Addr: cfg.Addr(),
+		Handler: web.NewHandler(web.Dependencies{
+			API:            api,
+			Logger:         logger,
+			RequestTimeout: cfg.RequestTimeout,
+		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		// The write timeout must outlast the request deadline, or a slow
+		// request would be cut off before it could render its own error page.
+		WriteTimeout: cfg.RequestTimeout + 5*time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -66,7 +66,7 @@ func run(logger *slog.Logger, port string) error {
 
 	serveErr := make(chan error, 1)
 	go func() {
-		logger.Info("server listening", "addr", srv.Addr)
+		logger.Info("server listening", "addr", srv.Addr, "backend", cfg.BackendURL)
 		serveErr <- srv.ListenAndServe()
 	}()
 
@@ -80,35 +80,16 @@ func run(logger *slog.Logger, port string) error {
 	}
 
 	logger.Info("shutting down")
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)
 }
 
-func handleHealth(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
-func handleHome(logger *slog.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		// Render into a buffer so a template failure never sends half a page.
-		var body bytes.Buffer
-		if err := templates.Render(&body, templates.Search, view.Page{Title: "SkyPath"}); err != nil {
-			logger.Error("render search page", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = body.WriteTo(w)
-	}
-}
-
 // probe calls the local health endpoint and returns a process exit code. It
 // lets the container health check run without any extra tools in the image.
-func probe(port string) int {
+func probe(port int) int {
 	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%s/healthz", port))
+	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/healthz", port))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "healthcheck:", err)
 		return 1
