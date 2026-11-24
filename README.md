@@ -20,7 +20,7 @@ docker-compose up
 | | URL |
 |---|---|
 | Web application | http://localhost:3000 |
-| API | http://localhost:8080 |
+| API | `http://localhost:8080`, for example [`/readyz`](http://localhost:8080/readyz) |
 
 `docker compose up` works too. If a port is taken: `FRONTEND_PORT=3001 BACKEND_PORT=8081 docker-compose up`.
 
@@ -164,7 +164,7 @@ The reference results were produced by a separate implementation of the rules wr
 
 CI runs formatting, `go vet`, `staticcheck`, tests with the race detector, then builds the containers and searches through them.
 
-A search over a generated network of 25 airports and 300 flights takes about 3.4 µs and 4 allocations.
+On a generated network of 25 airports and 300 flights, a search takes about 3 to 4 µs and 4 allocations, averaged over every route in the network (about 1.7 itineraries per search).
 
 ## With more time
 
