@@ -72,6 +72,8 @@
   --color-surface-sunken: oklch(0.958 0.005 85);
   --color-border: oklch(0.9 0.006 85);
   --color-border-strong: oklch(0.8 0.008 85);
+  /* Outlines of form controls: 3:1 against the surface (WCAG 1.4.11). */
+  --color-control-border: oklch(0.62 0.012 85);
   --color-text: oklch(0.24 0.014 262);
   --color-text-muted: oklch(0.47 0.014 262);
   --color-accent: oklch(0.47 0.16 262);
@@ -79,7 +81,7 @@
   --color-accent-contrast: oklch(0.985 0.006 262);
   --color-accent-soft: oklch(0.94 0.03 262);
   --color-accent-text: oklch(0.44 0.15 262);
-  --color-rail: oklch(0.72 0.08 262);
+  --color-rail: oklch(0.64 0.1 262);
   --color-error: oklch(0.5 0.19 27);
   --color-error-soft: oklch(0.96 0.025 27);
   --color-warning: oklch(0.47 0.11 65);
@@ -105,6 +107,7 @@
     --color-surface-sunken: oklch(0.19 0.011 262);
     --color-border: oklch(0.3 0.013 262);
     --color-border-strong: oklch(0.4 0.015 262);
+    --color-control-border: oklch(0.55 0.015 262);
     --color-text: oklch(0.945 0.006 85);
     --color-text-muted: oklch(0.74 0.012 262);
     --color-accent: oklch(0.74 0.12 262);
@@ -379,7 +382,7 @@ main {
 
 .button--secondary {
   background: var(--color-surface);
-  border-color: var(--color-border-strong);
+  border-color: var(--color-control-border);
   color: var(--color-text);
 }
 
@@ -459,7 +462,7 @@ main {
   min-width: 0;
   height: var(--control-height);
   padding: 0 var(--space-4);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   font-size: var(--text-md);
@@ -472,7 +475,7 @@ main {
 }
 
 .field__input:hover {
-  border-color: color-mix(in oklch, var(--color-border-strong), var(--color-text) 30%);
+  border-color: color-mix(in oklch, var(--color-control-border), var(--color-text) 35%);
 }
 
 .field__input:focus,
@@ -585,7 +588,7 @@ main {
   width: var(--target-min);
   height: var(--target-min);
   padding: 0;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-full);
   background: var(--color-surface);
   color: var(--color-text-muted);
@@ -1273,6 +1276,11 @@ main {
   color: var(--color-text);
 }
 
+/* Keep "in City (CODE)" together; the line breaks before it instead. */
+.layover__where {
+  white-space: nowrap;
+}
+
 .layover__kind {
   display: inline-block;
   margin-left: 0.25rem;
@@ -1420,5 +1428,88 @@ main {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Windows high contrast and other forced palettes drop background colours,
+   which is how the rails and dots are drawn; redraw them in system colours. */
+@media (forced-colors: active) {
+  .tl-row::before,
+  .route__line,
+  .route__line::before,
+  .route__line::after,
+  .leg:first-child .tl-point--dep::after,
+  .leg:last-child .tl-point--arr::after {
+    background: CanvasText;
+  }
+
+  .layover .tl-row::before {
+    background: repeating-linear-gradient(to bottom, CanvasText 0 3px, transparent 3px 7px);
+  }
+
+  .tl-point::after,
+  .route__stop {
+    border-color: CanvasText;
+  }
+
+  .tag,
+  .day-offset,
+  .layover__kind,
+  .card,
+  .notice {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* Printed results: just the heading and the itineraries, in ink on paper. */
+@media print {
+  :root {
+    color-scheme: light;
+    --color-bg: white;
+    --color-surface: white;
+    --color-surface-sunken: white;
+    --color-text: black;
+    --color-text-muted: #444;
+    --color-border: #bbb;
+    --color-rail: #777;
+    --color-accent: black;
+    --color-accent-text: black;
+    --color-accent-soft: white;
+  }
+
+  body {
+    background: none;
+    font-size: 10pt;
+  }
+
+  .skip-link,
+  .site-header__tagline,
+  .search,
+  .notices,
+  .site-footer,
+  .empty__action {
+    display: none !important;
+  }
+
+  main {
+    padding: 0;
+  }
+
+  .results {
+    margin-top: 0;
+  }
+
+  .card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .tag,
+  .day-offset {
+    border: 1px solid currentColor;
+  }
+
+  .itinerary {
+    animation: none;
   }
 }

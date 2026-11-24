@@ -309,7 +309,7 @@ func TestResultsState(t *testing.T) {
 		"SP120 · SkyPath Airways · A320",
 		`<time datetime="2024-03-15T08:30:00-05:00">8:30 AM</time>`,
 		"O&#39;Hare International · UTC-5",
-		`<span class="layover__duration">45m layover</span> in Chicago (ORD)`,
+		`<span class="layover__duration">45m layover</span> <span class="layover__where">in Chicago (ORD)</span>`,
 		`<span class="layover__kind">Domestic connection</span>`,
 	)
 	assertNotContains(t, html, "Two stops", "day-offset", "No itineraries found")
@@ -344,7 +344,7 @@ func TestTwoStopResults(t *testing.T) {
 		`<time datetime="2024-03-17T03:00:00&#43;09:00">3:00 AM</time> <span class="day-offset">&#43;2 days</span>`,
 		`<li class="layover layover--international">`,
 		`<span class="layover__kind">International connection</span>`,
-		`<span class="layover__duration">2h 45m layover</span> in Los Angeles (LAX)`,
+		`<span class="layover__duration">2h 45m layover</span> <span class="layover__where">in Los Angeles (LAX)</span>`,
 		"SP501 · SkyPath Airways · B777",
 		`aria-label="2:00 PM SFO to 3:00 AM NRT &#43;2 days, 21h, 2 stops via DEN, LAX, $1,137.00, Fastest, Cheapest"`,
 	)
