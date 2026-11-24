@@ -9,6 +9,11 @@ import (
 	"github.com/luisalarcon/skypath/backend/internal/httpx"
 )
 
+// statusClientClosedRequest is the conventional, non-standard status for a
+// request the client abandoned. It is never seen by a client; it labels the
+// request in the access log.
+const statusClientClosedRequest = 499
+
 // handleSearch validates the request, runs the search and encodes the result.
 func (s *server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	req, errs := validateSearch(r.URL.Query(), s.deps.Airports)
@@ -41,6 +46,14 @@ func (s *server) searchFailed(w http.ResponseWriter, r *http.Request, err error)
 		s.logger.Warn("search exceeded the request deadline",
 			"request_id", httpx.RequestIDFromContext(r.Context()), "error", err)
 		writeProblem(w, r, problemTimeout, nil)
+	case errors.Is(err, context.Canceled):
+		// The client went away before the search finished. Nobody is left to
+		// read a response and nothing went wrong on the server, so this is
+		// neither answered with a 500 nor logged as an error. The status only
+		// exists so the access log shows what happened.
+		s.logger.Info("search abandoned by the client",
+			"request_id", httpx.RequestIDFromContext(r.Context()))
+		w.WriteHeader(statusClientClosedRequest)
 	default:
 		s.internalError(w, r, "search failed", err)
 	}
