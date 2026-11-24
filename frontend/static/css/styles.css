@@ -601,10 +601,15 @@ main {
   color: var(--color-accent-text);
 }
 
-/* Stacked fields swap vertically, side-by-side fields horizontally. */
+/* Stacked fields swap vertically, side-by-side fields horizontally. Each
+   swap turns the arrows half a revolution. */
 .swap .icon {
   transform: rotate(90deg);
   transition: transform var(--duration-slow) var(--ease-out);
+}
+
+.swap.is-swapped .icon {
+  transform: rotate(270deg);
 }
 
 /* Submit */
@@ -664,6 +669,10 @@ main {
 
   .swap .icon {
     transform: none;
+  }
+
+  .swap.is-swapped .icon {
+    transform: rotate(180deg);
   }
 
   .search-form__submit {
