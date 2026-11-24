@@ -79,7 +79,23 @@ type Results struct {
 	OneStop int // of which one stop
 	TwoStop int // of which two stops
 
+	// Summary describes the result set in words, total first and then each
+	// group that has any: "27 itineraries", "3 direct", "14 one stop",
+	// "10 two stops". Pluralising here keeps that logic out of the templates.
+	Summary []string
+
+	// Retry suggests repeating an empty search on the first date the schedule
+	// covers. It is nil when the search found something, when it was already
+	// for that date, or when the schedule's dates are unknown.
+	Retry *Link
+
 	Itineraries []Itinerary // fastest first
+}
+
+// Link is a labelled link to another page of the application.
+type Link struct {
+	Label string // "Search Mar 15, 2024 instead"
+	URL   string
 }
 
 // Itinerary is one way of getting from origin to destination.

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/luisalarcon/skypath/frontend/internal/client"
@@ -65,7 +66,27 @@ func resultsView(resp *client.SearchResponse) *view.Results {
 		}
 	}
 	addTags(results.Itineraries)
+	results.Summary = summarise(results)
 	return results
+}
+
+// summarise words the result counts: the total, then each group that has any.
+func summarise(results *view.Results) []string {
+	total := "itineraries"
+	if results.Count == 1 {
+		total = "itinerary"
+	}
+	summary := []string{fmt.Sprintf("%d %s", results.Count, total)}
+	if results.Direct > 0 {
+		summary = append(summary, fmt.Sprintf("%d direct", results.Direct))
+	}
+	if results.OneStop > 0 {
+		summary = append(summary, fmt.Sprintf("%d one stop", results.OneStop))
+	}
+	if results.TwoStop > 0 {
+		summary = append(summary, fmt.Sprintf("%d two stops", results.TwoStop))
+	}
+	return summary
 }
 
 // itineraryView converts one itinerary. The search's own origin and

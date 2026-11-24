@@ -95,6 +95,7 @@ func resultsPage() view.Page {
 		Count:       2,
 		Direct:      1,
 		OneStop:     1,
+		Summary:     []string{"2 itineraries", "1 direct", "1 one stop"},
 		Itineraries: []view.Itinerary{
 			{
 				Stops:           0,
@@ -164,6 +165,7 @@ func twoStopPage() view.Page {
 		DateISO:     "2024-03-15",
 		Count:       1,
 		TwoStop:     1,
+		Summary:     []string{"1 itinerary", "1 two stops"},
 		Itineraries: []view.Itinerary{
 			{
 				Stops:           2,
@@ -225,6 +227,11 @@ func emptyPage() view.Page {
 		Destination: testAirport("LAX"),
 		Date:        "Wednesday, March 20, 2024",
 		DateISO:     "2024-03-20",
+		Summary:     []string{"0 itineraries"},
+		Retry: &view.Link{
+			Label: "Search Mar 15, 2024 instead",
+			URL:   "/?date=2024-03-15&destination=LAX&origin=JFK",
+		},
 	}
 	return p
 }
