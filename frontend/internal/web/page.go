@@ -167,6 +167,7 @@ func (s *server) search(ctx context.Context, page *view.Page) int {
 	resp, err := s.api.Search(ctx, form.Origin, form.Destination, form.Date)
 	if err == nil {
 		page.Results = resultsView(resp)
+		page.Results.Retry = retryLink(resp, page.Dataset)
 		page.Title = resultsTitle(resp)
 		return http.StatusOK
 	}
@@ -231,6 +232,25 @@ func fieldErrors(problems []client.FieldError) view.FieldErrors {
 		}
 	}
 	return out
+}
+
+// retryLink offers the same route on the first date the schedule covers when
+// a search found nothing. Searching outside the covered dates is the usual
+// reason for an empty result, so this is the most useful next step. There is
+// nothing to offer when the search was already for that date.
+func retryLink(resp *client.SearchResponse, dataset *view.Dataset) *view.Link {
+	if len(resp.Itineraries) > 0 || dataset == nil || resp.Date == dataset.FirstDateISO {
+		return nil
+	}
+	query := url.Values{
+		"origin":      {resp.Origin.Code},
+		"destination": {resp.Destination.Code},
+		"date":        {dataset.FirstDateISO},
+	}
+	return &view.Link{
+		Label: "Search " + dataset.FirstDate + " instead",
+		URL:   "/?" + query.Encode(),
+	}
 }
 
 // resultsTitle is "JFK to LAX · Mar 15, 2024 · SkyPath".

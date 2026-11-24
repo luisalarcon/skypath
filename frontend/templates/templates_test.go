@@ -291,9 +291,9 @@ func TestResultsState(t *testing.T) {
 		`New York <span class="results-head__code">(JFK)</span>`,
 		`Los Angeles <span class="results-head__code">(LAX)</span>`,
 		`<time datetime="2024-03-15">Friday, March 15, 2024</time>`,
-		`<dt>Itineraries</dt><dd>2</dd>`,
-		`<dt>Direct</dt><dd>1</dd>`,
-		`<dt>One stop</dt><dd>1</dd>`,
+		`<li class="tally__item">2 itineraries</li>`,
+		`<li class="tally__item">1 direct</li>`,
+		`<li class="tally__item">1 one stop</li>`,
 		"Times are local to each airport.",
 		// Summary rows.
 		`<time class="route__time" datetime="2024-03-15T08:30:00-04:00">8:30 AM</time>`,
@@ -338,7 +338,7 @@ func TestResultsState(t *testing.T) {
 func TestTwoStopResults(t *testing.T) {
 	html := render(t, Search, twoStopPage())
 	assertContains(t, html,
-		`<dt>Two stops</dt><dd>1</dd>`,
+		`<li class="tally__item">1 itinerary</li>`, `<li class="tally__item">1 two stops</li>`,
 		`<p class="route__stops">2 stops · DEN, LAX</p>`,
 		`<span class="route__code">NRT <span class="day-offset">&#43;2 days</span></span>`,
 		`<time datetime="2024-03-17T03:00:00&#43;09:00">3:00 AM</time> <span class="day-offset">&#43;2 days</span>`,
@@ -348,7 +348,7 @@ func TestTwoStopResults(t *testing.T) {
 		"SP501 · SkyPath Airways · B777",
 		`aria-label="2:00 PM SFO to 3:00 AM NRT &#43;2 days, 21h, 2 stops via DEN, LAX, $1,137.00, Fastest, Cheapest"`,
 	)
-	assertNotContains(t, html, "<dt>Direct</dt>", "<dt>One stop</dt>")
+	assertNotContains(t, html, "direct</li>", "one stop</li>")
 	if n := strings.Count(html, `<span class="route__stop">`); n != 2 {
 		t.Errorf("route shows %d stop dots, want 2", n)
 	}
@@ -374,7 +374,7 @@ func TestEmptyState(t *testing.T) {
 		"Nothing connects New York (JFK) to Los Angeles (LAX)",
 		`<time datetime="2024-03-20">Wednesday, March 20, 2024</time>`,
 		"The schedule covers Mar 15, 2024 to Mar 16, 2024.",
-		`href="/?origin=JFK&amp;destination=LAX&amp;date=2024-03-15"`,
+		`href="/?date=2024-03-15&amp;destination=LAX&amp;origin=JFK"`,
 		"Search Mar 15, 2024 instead",
 	)
 	assertNotContains(t, html, `class="itinerary"`, `class="tally"`, `<section class="intro"`)
@@ -383,6 +383,8 @@ func TestEmptyState(t *testing.T) {
 func TestEmptyStateWithoutCoverage(t *testing.T) {
 	page := emptyPage()
 	page.Dataset = nil
+	// The handler only supplies a retry link when it knows the covered dates.
+	page.Results.Retry = nil
 	html := render(t, Search, page)
 	assertContains(t, html, "No itineraries found", "Nothing connects New York (JFK)")
 	assertNotContains(t, html, "The schedule covers", "data-search-link")

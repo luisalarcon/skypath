@@ -16,12 +16,11 @@
       <span class="results-head__place">{{.Destination.City}} <span class="results-head__code">({{.Destination.Code}})</span></span>
     </h2>
     <p class="results-head__date"><time datetime="{{.DateISO}}">{{.Date}}</time></p>
-    <dl class="tally">
-      <div class="tally__item tally__item--total"><dt>Itineraries</dt><dd>{{.Count}}</dd></div>
-      {{- if .Direct}}<div class="tally__item"><dt>Direct</dt><dd>{{.Direct}}</dd></div>{{end}}
-      {{- if .OneStop}}<div class="tally__item"><dt>One stop</dt><dd>{{.OneStop}}</dd></div>{{end}}
-      {{- if .TwoStop}}<div class="tally__item"><dt>Two stops</dt><dd>{{.TwoStop}}</dd></div>{{end}}
-    </dl>
+    <ul class="tally">
+      {{- range .Summary}}
+      <li class="tally__item">{{.}}</li>
+      {{- end}}
+    </ul>
     <p class="results-head__note">Sorted by total travel time. Times are local to each airport.</p>
   </header>
 
@@ -34,8 +33,8 @@
 {{end}}
 
 {{/*
-  A completed search that found nothing; data is view.Page. When the schedule
-  coverage is known, it offers the same route on the first covered date.
+  A completed search that found nothing; data is view.Page. When the handler
+  supplies a retry link, it offers the same route on the first covered date.
 */}}
 {{define "results-empty"}}
 {{- with .Results}}
@@ -48,11 +47,10 @@
   </p>
   {{- with $.Dataset}}
   <p class="empty__text">The schedule covers {{.FirstDate}} to {{.LastDate}}.</p>
+  {{- end}}
+  {{- with .Retry}}
   <p class="empty__action">
-    <a class="button button--secondary" data-search-link
-      href="/?origin={{$.Results.Origin.Code}}&amp;destination={{$.Results.Destination.Code}}&amp;date={{.FirstDateISO}}">
-      Search {{.FirstDate}} instead
-    </a>
+    <a class="button button--secondary" data-search-link href="{{.URL}}">{{.Label}}</a>
   </p>
   {{- end}}
 </section>

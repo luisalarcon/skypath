@@ -923,9 +923,15 @@ main {
   margin-inline: var(--space-1);
 }
 
-.tally dd {
-  font-weight: var(--weight-semibold);
+.tally {
+  padding: 0;
+  list-style: none;
   font-variant-numeric: tabular-nums;
+}
+
+/* The total leads; the split by stops follows in the muted colour. */
+.tally__item:first-child {
+  font-weight: var(--weight-semibold);
   color: var(--color-text);
 }
 
