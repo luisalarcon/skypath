@@ -153,6 +153,28 @@ Where the requirements left room, these readings were chosen:
 - **The two services share no code.** Each has its own small middleware. The contract and its examples keep them in step instead.
 - **A stopped backend can show as "took too long" under Docker.** Docker's internal DNS takes four to five seconds to report that a stopped service's name no longer exists, about as long as the frontend waits for the API (`BACKEND_TIMEOUT`, 5s). Whichever finishes first decides whether the page says "Search is temporarily unavailable" (502) or "The search took too long" (504). Either way the search stays filled in for a retry.
 
+## Security
+
+SkyPath serves public, read-only schedule data and stores nothing about its users. Security work therefore went into handling input safely and hardening the services, not into access control. **The API has no authentication and no rate limiting.**
+
+**In place**
+
+- Every input is validated before it is used: airport codes must be three letters and exist in the schedule, and dates must be ISO dates. Anything else is a 400 that names the field.
+- An inbound `X-Request-ID` is accepted only if it is 1 to 64 letters, digits, `.`, `_` or `-`, so a client cannot write arbitrary text into the logs.
+- Error responses never contain internal details. The cause is logged under the request ID.
+- Explicit server timeouts for headers, reads, writes and idle connections, a deadline on every request, and recovery from panics.
+- The API sends `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`, and no CORS headers, so scripts on other sites cannot read it from a browser. The web application adds a strict content security policy (no inline script or style), `X-Frame-Options: DENY` and a referrer policy, and renders all input through `html/template`.
+- Containers run as an unprivileged user on minimal images. There are no secrets in the code or configuration, and no third-party dependencies.
+
+**Not covered, and what production would add**
+
+| Gap | Next step |
+|---|---|
+| No authentication: anyone who can reach the API can search | Keep the API on a private network behind the frontend; issue API keys or OAuth tokens to any direct clients |
+| No rate limiting: one client can send unlimited searches | Per-client limits at the edge (load balancer, gateway or CDN), or a token-bucket middleware in the API |
+| No vulnerability scanning in CI | `govulncheck` for the Go toolchain and standard library, and an image scanner for the base images |
+| TLS is left to the host | Fine behind a managed platform; terminate TLS at a proxy anywhere else |
+
 ## Testing
 
 ```sh
@@ -186,6 +208,7 @@ On a generated network of 25 airports and 300 flights, a search takes about 3 to
 7. **Result caching** keyed by route and date, valid until the schedule changes.
 8. **Browser-level tests** of the script, which is currently verified by hand.
 9. **Minimum connection times per airport**, which is how real schedules work.
+10. **Authentication and rate limiting** for the API, as described under [Security](#security).
 
 ## Project layout
 
