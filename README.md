@@ -231,7 +231,7 @@ I built SkyPath with AI coding agents in Claude Code, using different models for
 4. **Integrate and verify.** Each branch was reviewed against its specification and merged by pull request only with CI green. The entry points were then wired together and the whole backend was tested through HTTP against the reference results. Review caught real defects, among them airport-code normalisation that accepted non-ASCII letters, and a client disconnect being logged as a server error.
 5. **Final review in parallel.** Two more agents ran at once: one checked every requirement against the code (Claude Opus), the other followed this README from a fresh clone (Claude Sonnet).
 
-From first reading the requirements to the merged README took about two hours; the final review and the deployment took about half an hour more. Because the streams committed at the same time, many commits in the history are minutes or seconds apart. Pull requests 1 to 10 show the order in which the parts landed.
+**Total time: about 2 hours 30 minutes**, from first reading the requirements to the deployed demo: about an hour of planning, about an hour of building and integrating, and about half an hour of final review and deployment. Because the streams committed at the same time, many commits in the history are minutes or seconds apart. Pull requests 1 to 10 show the order in which the parts landed.
 
 ## Project layout
 
