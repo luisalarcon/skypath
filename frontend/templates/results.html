@@ -3,7 +3,11 @@
 */}}
 
 {{define "results"}}
-{{- with .Results}}
+{{- if .Results.Itineraries}}{{template "results-list" .Results}}{{else}}{{template "results-empty" .}}{{end}}
+{{- end}}
+
+{{/* The heading and cards; data is view.Results with itineraries. */}}
+{{define "results-list"}}
 <section class="results-body" aria-labelledby="results-heading" data-count="{{.Count}}">
   <header class="results-head">
     <h2 class="results-head__route" id="results-heading" tabindex="-1">
@@ -26,6 +30,31 @@
     {{template "itinerary" .}}
     {{- end}}
   </ol>
+</section>
+{{end}}
+
+{{/*
+  A completed search that found nothing; data is view.Page. When the schedule
+  coverage is known, it offers the same route on the first covered date.
+*/}}
+{{define "results-empty"}}
+{{- with .Results}}
+<section class="empty" aria-labelledby="results-heading">
+  {{template "art-route"}}
+  <h2 class="empty__title" id="results-heading" tabindex="-1">No itineraries found</h2>
+  <p class="empty__text">
+    Nothing connects {{.Origin.City}} ({{.Origin.Code}}) to {{.Destination.City}} ({{.Destination.Code}})
+    on <time datetime="{{.DateISO}}">{{.Date}}</time>.
+  </p>
+  {{- with $.Dataset}}
+  <p class="empty__text">The schedule covers {{.FirstDate}} to {{.LastDate}}.</p>
+  <p class="empty__action">
+    <a class="button button--secondary" data-search-link
+      href="/?origin={{$.Results.Origin.Code}}&amp;destination={{$.Results.Destination.Code}}&amp;date={{.FirstDateISO}}">
+      Search {{.FirstDate}} instead
+    </a>
+  </p>
+  {{- end}}
 </section>
 {{- end}}
 {{end}}

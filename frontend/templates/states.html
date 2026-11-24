@@ -1,0 +1,41 @@
+{{/*
+  The page's quieter states: the prompt before any search and the page-level
+  notice.
+*/}}
+
+{{/* Before any search; data is view.Page. */}}
+{{define "intro"}}
+<section class="intro" aria-labelledby="intro-title">
+  {{template "art-route"}}
+  <div class="intro__body">
+    <h2 class="intro__title" id="intro-title">Where are you flying?</h2>
+    <p class="intro__text">
+      Choose two airports and a date to see every direct flight and connection with up to two stops,
+      fastest first. Each time is shown in its own airport’s local time.
+    </p>
+    {{- with .Dataset}}
+    <p class="intro__text">The schedule covers {{.FirstDate}} to {{.LastDate}}.</p>
+    {{- end}}
+  </div>
+</section>
+{{end}}
+
+{{/*
+  A page-level message; data is view.Notice. "Try again" resubmits the form,
+  which still holds the search, so it works without script too.
+*/}}
+{{define "notice"}}
+<div class="notice notice--{{.Kind}}">
+  <span class="notice__icon">{{template "icon-alert"}}{{template "icon-info"}}</span>
+  <div class="notice__body">
+    <h2 class="notice__title">{{.Title}}</h2>
+    {{- with .Message}}
+    <p class="notice__message">{{.}}</p>
+    {{- end}}
+  </div>
+  <button class="button button--secondary notice__action" type="submit" form="search-form">Try again</button>
+</div>
+{{end}}
+
+{{/* A quiet illustration of the brand mark: two airports and the arc between. */}}
+{{define "art-route"}}<svg class="art-route" viewBox="0 0 160 64" width="160" height="64" aria-hidden="true" focusable="false"><path class="art-route__arc" d="M14 52C38 6 122 6 146 52" fill="none" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.01 7"/><circle class="art-route__end" cx="14" cy="52" r="5"/><circle class="art-route__end" cx="146" cy="52" r="5"/><circle class="art-route__ring" cx="14" cy="52" r="10" fill="none" stroke-width="1.5"/><circle class="art-route__ring" cx="146" cy="52" r="10" fill="none" stroke-width="1.5"/></svg>{{end}}

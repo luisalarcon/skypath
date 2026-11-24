@@ -690,11 +690,169 @@ main {
 }
 
 /* ---------------------------------------------------------------------------
+   Notice
+   ------------------------------------------------------------------------ */
+
+.notices:not(:empty) {
+  margin-top: var(--space-6);
+}
+
+.notice {
+  --notice-color: var(--color-accent-text);
+  --notice-bg: var(--color-accent-soft);
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3) var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid color-mix(in oklch, var(--notice-color) 30%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--notice-bg);
+}
+
+.notice--error {
+  --notice-color: var(--color-error);
+  --notice-bg: var(--color-error-soft);
+}
+
+.notice--warning {
+  --notice-color: var(--color-warning);
+  --notice-bg: var(--color-warning-soft);
+}
+
+.notice__icon {
+  display: flex;
+  padding-top: 0.0625rem;
+  color: var(--notice-color);
+}
+
+/* One icon per kind; both are in the markup so the template stays free of
+   logic. */
+.notice__icon .icon--info,
+.notice--info .notice__icon .icon--alert {
+  display: none;
+}
+
+.notice--info .notice__icon .icon--info {
+  display: block;
+}
+
+.notice__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.notice__message {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.notice__action {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.notice--info .notice__action {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .notice {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .notice__action {
+    grid-column: 3;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Intro and empty state
+   ------------------------------------------------------------------------ */
+
+.art-route {
+  flex: none;
+  width: 8rem;
+  height: auto;
+}
+
+.art-route__arc {
+  stroke: var(--color-rail);
+}
+
+.art-route__end {
+  fill: var(--color-accent);
+}
+
+.art-route__ring {
+  stroke: color-mix(in oklch, var(--color-accent) 30%, transparent);
+}
+
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+  padding: var(--space-2) var(--space-1);
+}
+
+.intro__body {
+  flex: 1 1 20rem;
+  display: grid;
+  gap: var(--space-2);
+  max-width: 38rem;
+}
+
+.intro__title,
+.empty__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.intro__text,
+.empty__text {
+  color: var(--color-text-muted);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-10) var(--space-6);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.empty .art-route {
+  margin-bottom: var(--space-3);
+}
+
+.empty__text {
+  max-width: 34rem;
+}
+
+.empty__action {
+  margin-top: var(--space-4);
+}
+
+/* ---------------------------------------------------------------------------
    Results
    ------------------------------------------------------------------------ */
 
 .results {
   margin-top: var(--space-10);
+}
+
+.notices:not(:empty) + .results {
+  margin-top: var(--space-6);
 }
 
 .results-head {

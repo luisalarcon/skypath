@@ -13,8 +13,20 @@
       </div>
     </section>
 
+    {{/*
+      The notice area and the results area are always present, so the script
+      can swap their contents from a fetched page; see static/js/app.js.
+    */}}
+    <div class="notices" id="notice" tabindex="-1">
+      {{- with .Notice}}{{template "notice" .}}{{end -}}
+    </div>
+
     <div class="results" id="results">
-      {{- if .Results}}{{template "results" .}}{{end}}
+      {{- if .Results}}{{template "results" .}}
+      {{- else if .Form.Errors.Any}}
+      {{- else if .Notice}}
+      {{- else}}{{template "intro" .}}
+      {{- end}}
     </div>
   </main>
 {{template "site-footer"}}

@@ -356,3 +356,100 @@ func TestTwoStopResults(t *testing.T) {
 		t.Errorf("timeline shows %d flights, want 3", n)
 	}
 }
+
+func TestInitialState(t *testing.T) {
+	html := render(t, Search, initialPage())
+	assertContains(t, html,
+		"<title>SkyPath · Flight search</title>",
+		`<section class="intro"`,
+		"The schedule covers Mar 15, 2024 to Mar 16, 2024.",
+	)
+	assertNotContains(t, html, `id="results-heading"`, `class="notice `, `class="itinerary"`, `aria-invalid`)
+}
+
+func TestEmptyState(t *testing.T) {
+	html := render(t, Search, emptyPage())
+	assertContains(t, html,
+		`id="results-heading" tabindex="-1">No itineraries found</h2>`,
+		"Nothing connects New York (JFK) to Los Angeles (LAX)",
+		`<time datetime="2024-03-20">Wednesday, March 20, 2024</time>`,
+		"The schedule covers Mar 15, 2024 to Mar 16, 2024.",
+		`href="/?origin=JFK&amp;destination=LAX&amp;date=2024-03-15"`,
+		"Search Mar 15, 2024 instead",
+	)
+	assertNotContains(t, html, `class="itinerary"`, `class="tally"`, `<section class="intro"`)
+}
+
+func TestEmptyStateWithoutCoverage(t *testing.T) {
+	page := emptyPage()
+	page.Dataset = nil
+	html := render(t, Search, page)
+	assertContains(t, html, "No itineraries found", "Nothing connects New York (JFK)")
+	assertNotContains(t, html, "The schedule covers", "data-search-link")
+}
+
+func TestInvalidState(t *testing.T) {
+	html := render(t, Search, invalidPage())
+	assertContains(t, html, "Unknown airport code XXX.", "Destination is required.")
+	// Messages sit beside the fields; there is no results content at all.
+	if got := strings.TrimSpace(textByID(html, "results")); got != "" {
+		t.Errorf("results area is not empty: %q", got)
+	}
+	assertNotContains(t, html, `id="results-heading"`, `<section class="intro"`, `class="notice `)
+}
+
+func TestUnavailableState(t *testing.T) {
+	page := unavailablePage()
+	html := render(t, Search, page)
+	assertContains(t, html,
+		`<div class="notice notice--error">`,
+		`<h2 class="notice__title">Search is temporarily unavailable</h2>`,
+		"Your search is still filled in",
+		`type="submit" form="search-form">Try again</button>`,
+	)
+	// The form keeps its values.
+	if got := tagByID(t, html, "origin").attrs["value"]; got != "JFK" {
+		t.Errorf("origin value = %q, want JFK", got)
+	}
+	if got := tagByID(t, html, "destination").attrs["value"]; got != "LAX" {
+		t.Errorf("destination value = %q, want LAX", got)
+	}
+	assertNotContains(t, html, `id="results-heading"`, `<section class="intro"`, `class="itinerary"`)
+}
+
+// Regions the script swaps from a fetched page must each exist exactly once
+// in every state, even when empty.
+func TestSwapRegions(t *testing.T) {
+	regions := []string{"notice", "results", "origin-error", "destination-error", "date-error", "origin-hint", "destination-hint", "date-hint"}
+	for _, f := range pageFixtures() {
+		t.Run(f.name, func(t *testing.T) {
+			html := render(t, Search, f.page)
+			for _, id := range regions {
+				if n := strings.Count(html, ` id="`+id+`"`); n != 1 {
+					t.Errorf("region %q appears %d times, want 1", id, n)
+				}
+			}
+		})
+	}
+}
+
+func TestEscapesHostileInput(t *testing.T) {
+	for name, page := range map[string]any{"results": hostilePage(), "empty": hostileEmptyPage()} {
+		t.Run(name, func(t *testing.T) {
+			html := render(t, Search, page)
+			assertNotContains(t, html, "<script>alert(1)", "<img src=x", `"><script>`)
+			assertCSPSafe(t, html)
+			assertUniqueIDs(t, html)
+			for _, tg := range parseTags(html) {
+				if tg.name == "img" {
+					t.Errorf("hostile input produced an element: %s", tg.raw)
+				}
+			}
+		})
+	}
+	// The value attribute keeps the text intact once unescaped by the browser.
+	html := render(t, Search, hostilePage())
+	if got := tagByID(t, html, "origin").attrs["value"]; !strings.Contains(got, "&lt;script&gt;") && !strings.Contains(got, "&#34;&gt;&lt;script") {
+		t.Errorf("origin value is not escaped as text: %q", got)
+	}
+}
