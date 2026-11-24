@@ -26,6 +26,15 @@ docker-compose up
 
 The schedule covers departures on 2024-03-15 and 2024-03-16, and the date picker defaults to the first of them.
 
+## Live demo
+
+| | URL |
+|---|---|
+| Web application | https://skypath-4bl8.onrender.com |
+| API | [`https://skypath-api-qmx4.onrender.com/readyz`](https://skypath-api-qmx4.onrender.com/readyz) |
+
+The same two containers, unchanged, run on Render's free plan. Free services stop after about 15 minutes without traffic, so the first visit after a quiet spell can take about a minute while the page wakes, and the first search up to another minute while the API wakes. After that, responses are immediate. The frontend there allows 60 seconds for a call to the API (`BACKEND_TIMEOUT=60s`), so a cold start shows as a slow search rather than an error.
+
 ## Try these searches
 
 | # | Search on 2024-03-15 | What you get |
