@@ -100,6 +100,8 @@ Access log fields:
 
 Health probes are logged at `debug`, so they do not drown out real traffic at the default level. Server errors are logged at `error` with the cause; the response body never contains it.
 
+A search the client abandons before it finishes is not a server error. The API logs it at `info` and records status `499` in the access log; no response is written, because nobody is left to read one.
+
 ## Limits and timeouts
 
 | Setting | Value |

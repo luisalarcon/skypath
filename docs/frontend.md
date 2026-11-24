@@ -85,7 +85,7 @@ An invalid field is marked with `aria-invalid`, its message is linked with `aria
 
 ## Results
 
-**Heading.** Route with city names and codes, the long date, the number of itineraries and the split by stops, and a note that results are sorted by total travel time and that all times are local to each airport.
+**Heading.** Route with city names and codes, the long date, a summary in words ("27 itineraries · 3 direct · 14 one stop · 10 two stops"), and a note that results are sorted by total travel time and that all times are local to each airport. The handler words the summary, so templates never pluralise.
 
 **Itinerary card.** One per itinerary, fastest first.
 
@@ -103,7 +103,7 @@ Times use the `<time>` element with the full timestamp in `datetime`.
 | **Initial** | The form, with a short prompt and the dates the schedule covers |
 | **Loading** | The button shows a spinner and "Searching…"; skeleton cards fill the results area; the area is marked busy |
 | **Results** | Heading and cards |
-| **Empty** | "No itineraries found", naming the route and date, the dates the schedule covers, and a link that repeats the search on the first covered date |
+| **Empty** | "No itineraries found", naming the route and date and the dates the schedule covers. When the search was for a different date, a link repeats it on the first covered date. |
 | **Invalid input** | Messages beside the fields; no results area |
 | **Service unavailable** | A banner: the search is temporarily unavailable, the search is still filled in, try again. The form keeps its values. |
 | **Not found / error page** | A simple page with a link back to search |
@@ -178,7 +178,7 @@ Page titles: `SkyPath · Flight search` before a search and `JFK to LAX · Mar 1
 - Semantic landmarks: `header`, `main`, `footer`. One `h1`.
 - Every input has a visible `label`. Hints and errors are linked with `aria-describedby`.
 - Everything works with the keyboard alone; focus is always clearly visible.
-- The results area is a live region; updates are announced.
+- A separate polite status region announces each outcome ("27 itineraries found"). The results area itself is only marked busy while loading, so replacing the list does not read every card aloud.
 - Itineraries are a list. Each card has an accessible name summarising it.
 - Colour is never the only carrier of meaning: tags and connection types are text.
 - Touch targets are at least 44 by 44 CSS pixels.
