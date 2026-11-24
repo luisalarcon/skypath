@@ -142,7 +142,7 @@ Where the requirements left room, these readings were chosen:
 - **All itineraries are returned, unpaginated.** The largest result is 27. A larger network would need limits and paging.
 - **The loading indicator needs JavaScript.** Without it the page still works, with the browser's own indicator.
 - **The two services share no code.** Each has its own small middleware. The contract and its examples keep them in step instead.
-- **A stopped backend shows as "took too long"** rather than "unavailable" when run under Docker, because connections to a stopped container time out instead of being refused.
+- **A stopped backend can show as "took too long" under Docker.** Docker's internal DNS takes four to five seconds to report that a stopped service's name no longer exists, about as long as the frontend waits for the API (`BACKEND_TIMEOUT`, 5s). Whichever finishes first decides whether the page says "Search is temporarily unavailable" (502) or "The search took too long" (504). Either way the search stays filled in for a retry.
 
 ## Testing
 
